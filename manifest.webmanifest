@@ -1,0 +1,14 @@
+{
+ "id":"./",
+ "name":"E-3913 e F-3931 — Controle Concept",
+ "short_name":"E3913 Concept",
+ "description":"Treinamento interativo das malhas de controle e do intertravamento de desvio de gás ácido para flare da E-3913",
+ "start_url":"./index.html",
+ "scope":"./",
+ "display":"standalone",
+ "background_color":"#081b31",
+ "theme_color":"#091a2e",
+ "lang":"pt-BR",
+ "orientation":"any",
+ "icons":[{"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]
+}

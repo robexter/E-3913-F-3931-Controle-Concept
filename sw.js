@@ -1,0 +1,6 @@
+const CACHE='e3913-f3931-concept-v1.1.0';
+const ASSETS=['./','./index.html','./style.css','./app.js','./interlock.js','./interlock.css','./assets/intertravamento-gas-acido-original.png','./manifest.webmanifest','./assets/diagrama-original.png','./icons/icon-192.png','./icons/icon-512.png'];
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('e3913-f3931-concept-')&&key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));
+self.addEventListener('fetch',event=>{const r=event.request;if(r.method!=='GET'||new URL(r.url).origin!==location.origin)return; if(r.mode==='navigate'){event.respondWith(fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(CACHE).then(c=>c.put('./index.html',cp));}return res;}).catch(()=>caches.match('./index.html')));return;} event.respondWith(caches.match(r).then(cached=>cached||fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp));}return res;})));});
+self.addEventListener('message',event=>{if(event.data==='SKIP_WAITING')self.skipWaiting();});
