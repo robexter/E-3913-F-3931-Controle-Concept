@@ -1,4 +1,4 @@
-const CACHE='e3913-f3931-concept-v1.1.0';
+const CACHE='e3913-f3931-concept-v1.1.1';
 const ASSETS=['./','./index.html','./style.css','./app.js','./interlock.js','./interlock.css','./assets/intertravamento-gas-acido-original.png','./manifest.webmanifest','./assets/diagrama-original.png','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('e3913-f3931-concept-')&&key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));
