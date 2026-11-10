@@ -4,12 +4,13 @@ const explanations={
 'LIC-518':['LIC-39518 — Controle de nível','LT-518 transmite a PV de nível da E-3913. Na captura atual LIC-39518 apresenta SP = 69% (diagrama didático anterior: 48%) e ajusta o SP remoto do FIC-534. Nível baixo → aumento esperado da referência de vazão; nível alto → redução. A capacidade de recuperação depende da retirada de líquido e da autoridade da FV-534.'],
 'FIC-534':['FIC-534 — Malha interna da cascata','O FIC-534 compara o SP enviado pelo LIC-518 com a vazão FT-534 e calcula a solicitação de FV-534. Corrige variações hidráulicas mais rapidamente do que a malha de nível. Se a FV saturar ou o FT falhar, a cascata pode perder efetividade.'],
 'FV-534':['FV-534 — Válvula de DEA rica','Elemento final da alimentação da E-3913. Para vazão líquida em regime admissível, Q é função de Cv(abertura) e da raiz de ΔP. Uma mesma abertura não garante mesma vazão sob diferentes pressões. ZIC-502 utiliza um sinal associado à posição de controle desta válvula.'],
-'ZIC-502':['ZIC-502 — Controle de posição / VPC','Recebe sinal associado à saída do FIC-534 e fornece SP ao PIC-518. Função conceitual: ajustar lentamente a pressão do tambor para preservar capacidade hidráulica e margem de atuação na FV-534. Banda morta do ZIC-39502: 3 pontos percentuais conforme informação operacional; ação final real precisa de confirmação no Centum VP.'],
-'PIC-518':['PIC-518 — Pressão do F-3931','PT-518 mede pressão do tambor flash. PIC-518 recebe a referência relacionada ao ZIC-502 e envia sua ação aos blocos split-range PY-518A/B. Admissão GAS IN tende a aumentar pressão; retirada GAS OUT tende a diminuir pressão. As faixas reais das válvulas não estão especificadas no desenho.'],
+'ZIC-502':['ZIC-39502 — Controle de posição / VPC','Compara a abertura solicitada da FV-534 com o SP de posição (72% na captura). Em AUTO, desvio maior que 3 pontos percentuais faz sua MV (referência do PIC-39518) aumentar ou reduzir dentro da faixa didática 2,50–3,50 kgf/cm². Dentro de ±3%, congela a correção; em MAN ou desabilitado não corrige. Essa alteração da pressão afeta ΔP e a posição necessária da FV-534. Validar direção, velocidade e limites reais no Centum VP.'],
+'PIC-518':['PIC-39518 — Pressão e split-range F-3931','Distribuição conforme informação operacional: MV de 0 a 50% abre apenas a FV-518A (GAS IN). Curva linear da FV-518A: cada ponto percentual a menos na MV abre A em 2 pontos percentuais, logo 0→100%, 25→50%, 50→0%. MV de 50 a 75% abre progressivamente a FV-518B (4% de abertura por 1% de MV); MV de 75 a 100% mantém B=100% e abre FV-518C na mesma taxa. Pressão baixa pede MV menor (GAS IN) e pressão alta MV maior (GAS OUT). Confirmar curva real dos PY-518A/B no SDCD.'],
 'FV-518A':['FV-518A — GAS IN','Válvula de admissão de gás do tambor flash F-3931. Em pressão abaixo da referência, sua maior abertura tende a recuperar a pressão se houver gás disponível a pressão adequada. Verifique a capacidade e a fonte antes de atribuir uma pressão baixa somente ao controle.'],
-'FV-518B':['FV-518B / FV-518C — GAS OUT','Válvulas de retirada de gás do F-3931. Com pressão elevada, a maior saída tende a despressurizar o tambor. A curva de divisão entre B e C necessita conferência no PY-518A/B; o exemplo animado usa acionamento escalonado.'],
+'FV-518B':['FV-518B / FV-518C — GAS OUT','Na estratégia informada: para MV do PIC-39518 de 50 a 75%, B abre linearmente de 0 a 100%; de 75 a 100%, B permanece totalmente aberta e C abre de 0 a 100%. Ambas retiram gás do F-3931, reduzem a pressão e o diferencial disponível à FV-534, favorecendo queda de vazão de DEA rica até que o FIC-39534 corrija a abertura, se houver capacidade.'],
+'FV-518C':['FV-518C — Segunda saída GAS OUT','MV do PIC-39518 acima de 75% abre gradualmente FV-518C a 4 pontos percentuais de abertura por 1 ponto de MV; atinge 100% em MV=100%. FV-518B já estará em 100% nessa faixa. Confirmar curvas reais nos blocos PY do SDCD.'],
 'FY-533':['FY-533A/B/C e FF-533 — Razão','FY-533A (LDLAG) trata dinamicamente o sinal da alimentação. FY-533B/C calcula DR = 13,3875 × (RV + 1,03) − 26,217 e SP = RV1 × (1 + DR/100). FF-533 (RATIO) fornece referência para FFIC-533. Escalas reais de RV/RV1 não estão comprovadas.'],
-'FFIC-533':['FFIC-533 — Vazão V4','O FFIC-533 compara a referência calculada com a vazão medida pelo FT-533 e demanda movimento da FV-533. Porém sua saída chega ao seletor FFY-533Y; quando LIC-527 impõe menor saída, FFIC perde a autoridade sobre a válvula.'],
+'FFIC-533':['FFIC-39533 — Vazão V4 em MAN / AUTO / CAS','Em CAS, o FFIC-39533 recebe o SP remoto calculado por FY-533A/B/C e FF-533 conforme a carga de DEA rica; em AUTO usa SP local editável; em MAN mantém a MV informada. Sua MV passa pelo seletor mínimo FFY-533Y junto à saída do LIC-39527. Quando FFIC solicita menos do que LIC, sua saída é selecionada e pode aumentar a FV-533 até o limite imposto pela outra malha. Maior demanda de stripping é uma associação funcional de treinamento, não medição direta de vapor.'],
 'LIC-527':['LIC-527 — Nível de condensado','LT-527 mede nível do inventário identificado como condensado do F-33. A saída do LIC-527 participa do seletor de mínima FFY-533Y. Em lógica convencional de proteção de nível baixo, a redução do nível pode restringir a FV-533. A ação real depende das parametrizações.'],
 'FFY-533Y':['FFY-533Y — Seletor de menor sinal','Recebe as demandas do FFIC-533 e do LIC-527 e seleciona o menor valor. No laboratório, menor saída = menor abertura da FV-533. As linhas de retorno são compatíveis com tracking/anti-windup; a confirmação exige ler as ligações configuradas no SDCD.'],
 'FV-533':['FV-533 — V4 para C-43','Válvula da corrente indicada no desenho como V4 P/C-43. Seu comando resulta da seleção de mínima FFY-533Y entre vazão FFIC-533 e nível LIC-527. Por isso uma diferença SP/PV de vazão pode ser atuação correta de uma restrição de inventário.'],
@@ -33,17 +34,17 @@ inputIds.forEach(id=>{$('in-'+id).addEventListener('input',()=>{updateInputLabel
 const controllerDefs=[
  {id:'lic',tag:'LIC-39518',label:'Nível E-3913',unit:'%',pv:69,sp:69,mv:2658.7,min:0,max:100,step:.1,modes:['AUTO','MAN'],mvUnit:'m³/d',mvMin:1000,mvMax:4300},
  {id:'fic',tag:'FIC-39534',label:'DEA rica para E-3913',unit:'m³/d',pv:2648.9,sp:2658.7,mv:71,min:500,max:4300,step:.1,modes:['MAN','AUTO','CAS'],mvUnit:'%',mvMin:0,mvMax:100},
- {id:'zic',tag:'ZIC-39502',label:'Posição FV-534 · DB 3%',unit:'%',pv:71,sp:72,mv:3.1,min:5,max:95,step:.1,modes:['AUTO','MAN'],mvUnit:'kgf/cm²',mvMin:1.2,mvMax:5},
- {id:'pic',tag:'PIC-39518',label:'Pressão F-3931',unit:'kgf/cm²',pv:3.06,sp:3,mv:53,min:1.2,max:5,step:.01,modes:['MAN','AUTO','CAS'],mvUnit:'%',mvMin:0,mvMax:100},
- {id:'ffic',tag:'FFIC-39533',label:'V4/condensado',unit:'t/d',pv:273.5,sp:279.6,mv:20.8,min:50,max:500,step:.1,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
+ {id:'zic',tag:'ZIC-39502',label:'Posição FV-534 · DB ±3 p.p.',unit:'%',pv:71,sp:72,mv:3.0,min:5,max:95,step:.1,modes:['AUTO','MAN'],mvUnit:'kgf/cm²',mvMin:2.5,mvMax:3.5},
+ {id:'pic',tag:'PIC-39518',label:'Pressão F-3931',unit:'kgf/cm²',pv:3.06,sp:3,mv:53,min:2.5,max:3.5,step:.01,modes:['MAN','AUTO','CAS'],mvUnit:'%',mvMin:0,mvMax:100},
+ {id:'ffic',tag:'FFIC-39533',label:'V4/condensado · vapor stripper',unit:'t/d',pv:273.5,sp:279.6,mv:20.8,min:50,max:500,step:.1,modes:['MAN','AUTO','CAS'],mvUnit:'%',mvMin:0,mvMax:100},
  {id:'lic27',tag:'LIC-39527',label:'Nível F-3933',unit:'%',pv:82,sp:75,mv:23.5,min:0,max:100,step:.1,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
  {id:'pica',tag:'PIC-39524A',label:'Pressão E-3913 · URE',unit:'kgf/cm²',pv:.60,sp:.60,mv:15,min:0,max:2,step:.01,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
  {id:'picb',tag:'PIC-39524B',label:'Pressão E-3913 · flare',unit:'kgf/cm²',pv:.60,sp:.70,mv:0,min:0,max:2,step:.01,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
  {id:'dea11',tag:'FFIC-39522',label:'Consumo de DEA E-3911',unit:'m³/d',pv:1297,sp:1300,mv:39.3,min:0,max:3000,step:1,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
  {id:'dea12',tag:'FFIC-39521',label:'Consumo de DEA E-3912 · exemplo',unit:'m³/d',pv:1200,sp:1200,mv:40,min:0,max:3000,step:1,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100,assumed:true}
 ];
-const ctrls={};for(const def of controllerDefs){ctrls[def.id]={def,mode:def.id==='fic'||def.id==='pic'?'CAS':'AUTO',sp:def.sp,mv:def.mv,effectiveSP:def.sp};}
-const initial=()=>({t:0,level:69,cond:82,flash:3.06,top:.60,flow:2648.9,flowPV:2648.9,v4flow:273.5,q3911:1297,q3912:1200,returnDemand:2648.9,ftFrozenValue:2648.9,fICSP:2658.7,flashSP:3.00,v4SP:279.6,dr:0,rv:.93,rv1:279.6,prevFlow:2648.9,mv534:71,cmd534:71,mv533:20.8,cmd533:20.8,valveIn:6,valveB:0,valveC:0,ure:15,flare:0,flowControlOut:20.8,levelControlOut:23.5,selected:'FFIC-39533',selectedOut:20.8,LInt:0,FInt:0,FlashInt:0,ZTrim:0,TopInt:0,V4Int:0,CondInt:0,D11Int:0,D12Int:0,FlareInt:0,topDemand:15,flashDemand:53,stability:100,flarePrev:false,selectedPrev:'FFIC-39533',gasWarnPrev:false});
+const ctrls={};for(const def of controllerDefs){ctrls[def.id]={def,mode:['fic','pic','ffic'].includes(def.id)?'CAS':'AUTO',sp:def.sp,mv:def.mv,effectiveSP:def.sp};}
+const initial=()=>({t:0,level:69,cond:82,flash:3.06,top:.60,flow:2648.9,flowPV:2648.9,v4flow:273.5,q3911:1297,q3912:1200,returnDemand:2648.9,ftFrozenValue:2648.9,fICSP:2658.7,flashSP:3.00,v4SP:279.6,dr:0,rv:.93,rv1:279.6,prevFlow:2648.9,mv534:71,cmd534:71,mv533:20.8,cmd533:20.8,valveIn:0,valveB:12,valveC:0,ure:15,flare:0,flowControlOut:20.8,levelControlOut:23.5,selected:'FFIC-39533',selectedOut:20.8,LInt:0,FInt:0,FlashInt:0,ZTrim:0,TopInt:0,V4Int:0,CondInt:0,D11Int:0,D12Int:0,FlareInt:0,topDemand:15,flashDemand:53,zicStatus:'DENTRO ±3% · SEM AJUSTE',zicError:-1,splitStage:'FV-518B (GAS OUT)',stability:100,flarePrev:false,selectedPrev:'FFIC-39533',gasWarnPrev:false});
 let S=initial(),running=true,speed=1,lastFrame=performance.now(),renderClock=0,chartClock=0,history=[];
 function log(msg,highlight=true){const el=$('eventLog'),p=document.createElement('div');p.className='log-line';const t=document.createElement('time');t.textContent=`${fmt(S.t,0)} s`;const sp=document.createElement('span');sp.textContent=msg;if(highlight)sp.style.fontWeight='750';p.append(t,sp);el.prepend(p);while(el.children.length>60)el.lastElementChild.remove();}
 function setT(id,value){const x=$(id);if(x)x.textContent=value;}
@@ -53,8 +54,8 @@ function makeModePanel(){const host=$('operatingControllers');if(!host)return;ho
 for(const d of controllerDefs){const c=ctrls[d.id];$('mode-'+d.id).addEventListener('change',e=>{const m=e.target.value;if(!d.modes.includes(m)){e.target.value=c.mode;return;}c.mv=outputFor(d.id);$('manual-'+d.id).value=String(clamp(c.mv,d.mvMin,d.mvMax));c.mode=m;modeFields(d.id);log(d.tag+' passou para '+m+'.');});$('sp-'+d.id).addEventListener('change',e=>{if(c.mode!=='AUTO'){e.target.value=c.sp;return;}const v=Number(e.target.value);if(!Number.isFinite(v)){e.target.value=c.sp;return;}c.sp=clamp(v,d.min,d.max);e.target.value=String(c.sp);log('SP de '+d.tag+' alterado para '+numFmt(c.sp,d.unit)+' '+d.unit+'.');});$('manual-'+d.id).addEventListener('change',e=>{if(c.mode!=='MAN')return;const v=Number(e.target.value);if(Number.isFinite(v))c.mv=clamp(v,d.mvMin,d.mvMax);e.target.value=String(c.mv);log('MV manual de '+d.tag+' = '+numFmt(c.mv,d.mvUnit)+' '+d.mvUnit);});modeFields(d.id);}}
 function modeFields(id){const c=ctrls[id],d=c.def,sp=$('sp-'+id);setT('sp-label-'+id,c.mode==='CAS'?'SP remoto':c.mode==='MAN'?'SP inativo':'SP editável');sp.disabled=c.mode!=='AUTO';$('manual-wrap-'+id).hidden=c.mode!=='MAN';$('hint-'+id).textContent=c.mode==='CAS'?'CAS: SP remoto recebido da malha mestre; altere o SP no controlador mestre.':c.mode==='MAN'?'MAN: saída fixa pelo operador; alteração do SP não comanda a válvula.':'AUTO: ajuste o SP e acompanhe PV e MV.';}
 function outputFor(id){return {lic:S.fICSP,fic:S.cmd534,zic:S.flashSP,pic:S.flashDemand,ffic:S.flowControlOut,lic27:S.levelControlOut,pica:S.topDemand,picb:S.flare,dea11:(ctrls.dea11.actualMV??ctrls.dea11.mv),dea12:(ctrls.dea12.actualMV??ctrls.dea12.mv)}[id]??ctrls[id].mv;}
-function reset(keepInputs=false){S=initial();history=[];if(!keepInputs){for(const id of inputIds){$('in-'+id).value=defaults[id];updateInputLabel(id);} $('faultSel').value='none';for(const id of ['ckZic','ckProtection','ckTracking'])$(id).checked=true;for(const d of controllerDefs){const c=ctrls[d.id];c.sp=d.sp;c.mv=d.mv;c.mode=d.id==='fic'||d.id==='pic'?'CAS':'AUTO';$('mode-'+d.id).value=c.mode;$('sp-'+d.id).value=c.sp;$('manual-'+d.id).value=c.mv;modeFields(d.id);}}$('eventLog').innerHTML='';log('Simulação reiniciada nas referências das capturas; FFIC-39521 permanece um exemplo editável.');collectHistory();render();}
-function modPI(error,intKey,kp,ki,base,dt,lo,hi){let integral=S[intKey]||0;const pre=base+kp*error+integral;if((pre>lo&&pre<hi)||(pre>=hi&&error<0)||(pre<=lo&&error>0))integral=clamp(integral+ki*error*dt,-1200,1200);S[intKey]=integral;return clamp(base+kp*error+integral,lo,hi);}
+function reset(keepInputs=false){S=initial();history=[];if(!keepInputs){for(const id of inputIds){$('in-'+id).value=defaults[id];updateInputLabel(id);} $('faultSel').value='none';for(const id of ['ckZic','ckProtection','ckTracking'])$(id).checked=true;for(const d of controllerDefs){const c=ctrls[d.id];c.sp=d.sp;c.mv=d.mv;c.mode=['fic','pic','ffic'].includes(d.id)?'CAS':'AUTO';$('mode-'+d.id).value=c.mode;$('sp-'+d.id).value=c.sp;$('manual-'+d.id).value=c.mv;modeFields(d.id);}}$('eventLog').innerHTML='';log('Simulação reiniciada nas referências das capturas; FFIC-39521 permanece um exemplo editável.');collectHistory();render();}
+function modPI(error,intKey,kp,ki,base,dt,lo,hi){let integral=S[intKey]||0;const pre=base+kp*error+integral,delta=ki*error*dt;if((pre>lo&&pre<hi)||(pre>=hi&&delta<0)||(pre<=lo&&delta>0))integral=clamp(integral+delta,-1200,1200);S[intKey]=integral;return clamp(base+kp*error+integral,lo,hi);}
 function control(id,pv,dt,kp,ki,base,iKey,lo=0,hi=100,spOverride=null){const c=ctrls[id];c.effectiveSP=spOverride===null?c.sp:spOverride;const value=c.mode==='MAN'?clamp(c.mv,lo,hi):modPI(c.effectiveSP-pv,iKey,kp,ki,base,dt,lo,hi);c.actualMV=value;return value;}
 function advance(dt){const fault=$('faultSel').value;
 // 1) Absorvedoras E-3911 e E-3912: dois consumos de DEA independentes (FFC 39522 / 39521).
@@ -70,17 +71,48 @@ const desiredValve=fault==='valve534'?71:S.cmd534;S.mv534+=(desiredValve-S.mv534
 const hd=clamp((getInput('supply')/100)*(S.flash/3.06),.15,2.4);
 S.flow+=(clamp(2648.9*(S.mv534/71)*Math.sqrt(hd),0,4800)-S.flow)*dt/1.65;
 S.level=clamp(S.level+dt*.002*(S.flow-S.returnDemand),0,100);
-// 3) ZIC-39502: deadband comprovada pelo usuário de ±3 pontos percentuais de posição.
-const zic=ctrls.zic;zic.effectiveSP=zic.sp;const errZ=S.mv534-zic.sp;
-if(zic.mode==='AUTO'&&$('ckZic').checked&&Math.abs(errZ)>3){S.ZTrim=clamp(S.ZTrim+.0014*(errZ-Math.sign(errZ)*3)*dt,-1.0,1.0);}
-S.flashSP=zic.mode==='MAN'?clamp(zic.mv,1.2,5):clamp(3.1+S.ZTrim,1.2,5);
+// 3) ZIC-39502: DB de ±3 pontos percentuais; o desvio fora da DB deve mover o SP do PIC.
+const zic=ctrls.zic;zic.effectiveSP=zic.sp;
+// Comparar PV recebida da MV do FIC-39534 (posição comandada), conforme diagrama e tela.
+const errZ=S.cmd534-zic.sp;S.zicError=errZ;
+const zicEnabled=zic.mode==='AUTO'&&$('ckZic').checked;
+if(zic.mode==='MAN'){
+ S.flashSP=clamp(zic.mv,2.5,3.5);S.ZTrim=S.flashSP-3;
+ S.zicStatus='MAN · MV FIXADA PELO OPERADOR';
+}else if(!$('ckZic').checked){
+ S.flashSP=clamp(3+S.ZTrim,2.5,3.5);
+ S.zicStatus='DESABILITADO · SEM CORREÇÃO';
+}else if(Math.abs(errZ)<=3){
+ S.flashSP=clamp(3+S.ZTrim,2.5,3.5);
+ S.zicStatus='DENTRO ±3% · CORREÇÃO SUSPENSA';
+}else{
+ // Incremento só no excesso de erro acima da DB; taxa didática em kgf/cm²/s por p.p.
+ const move=.0075*(errZ-Math.sign(errZ)*3)*dt;
+ S.ZTrim=clamp(S.ZTrim+move,-.5,.5);
+ S.flashSP=clamp(3+S.ZTrim,2.5,3.5);
+ const stuck=(errZ>3&&S.flashSP>=3.5-1e-7)||(errZ< -3&&S.flashSP<=2.5+1e-7);
+ S.zicStatus=stuck?'FORA DA DB · LIMITE DE SP ATINGIDO':(errZ>3?'FORA DA DB · ELEVANDO SP PIC':'FORA DA DB · REDUZINDO SP PIC');
+}
+if(zicEnabled&&ctrls.pic.mode!=='CAS')S.zicStatus+=' · PIC FORA DE CAS (SP NÃO APLICADO)';
 zic.actualMV=S.flashSP;
-// 4) Pressão F-3931: PIC-39518 MAN / AUTO / CAS; dois ramos GAS IN e GAS OUT.
+// 4) Curvas INFORMADAS INFORMADAS pelo operador, ainda não extraídas da configuração PY no SDCD.
+// Curva linear corrigida do operador: FV-518A = 100 - 2*MV (0..50); B=4*(MV-50) (50..75); C=4*(MV-75) (75..100).
+function split518(mv){
+ const u=clamp(mv,0,100);
+ const a=u<50?100-2*u:0;
+ const b=u<=50?0:u<75?4*(u-50):100;
+ const c=u<=75?0:4*(u-75);
+ return {a:clamp(a,0,100),b:clamp(b,0,100),c:clamp(c,0,100),stage:u<50?'FV-518A · GAS IN':u<75?'FV-518B · GAS OUT':u<100?'FV-518C · GAS OUT':'FV-518B/C · GAS OUT'};
+}
 const pic=ctrls.pic;const picSP=pic.mode==='CAS'?S.flashSP:pic.sp;
-S.flashDemand=control('pic',S.flash,dt,40,2.1,53,'FlashInt',0,100,picSP);
-const inCmd=clamp((S.flashDemand-50)*2,0,100),outCmd=clamp((50-S.flashDemand)*2,0,100);
-S.valveIn+=(inCmd-S.valveIn)*dt/1.0;S.valveB+=(Math.min(outCmd,50)-S.valveB)*dt/1.0;S.valveC+=(Math.max(0,outCmd-50)-S.valveC)*dt/1.0;
-S.flash=clamp(S.flash+dt*(.0014*(S.valveIn-6)-.0018*(S.valveB+S.valveC)+.00016*getInput('flashGas')+.000002*(S.flow-2648.9)),1.2,5.0);
+// Ação reversa da saída: pressão PV baixa → MV < 50 (GAS IN); pressão alta → MV > 50 (GAS OUT).
+S.flashDemand=control('pic',S.flash,dt,-36,-2.4,50,'FlashInt',0,100,picSP);
+const split=split518(S.flashDemand);S.splitStage=split.stage;
+S.valveIn+=(split.a-S.valveIn)*Math.min(1,dt/1.0);
+S.valveB+=(split.b-S.valveB)*Math.min(1,dt/1.0);
+S.valveC+=(split.c-S.valveC)*Math.min(1,dt/1.0);
+// Inventário de gás didático: admissão eleva pressão; retirada a reduz; resistência do sistema estabiliza o balanço.
+S.flash=clamp(S.flash+dt*(.0028*S.valveIn-.0033*(S.valveB+S.valveC)+.00010*getInput('flashGas')+.0000015*(S.flow-2648.9)+.010*(3.06-S.flash)),1.2,5.0);
 // 5) Pressão de topo E-3913; rotas URE e flare com SP em kgf/cm² (DB=3 original sem unidade conhecida).
 S.topDemand=control('pica',S.top,dt,65,3.0,15,'TopInt',0,100);
 const capacity=fault==='ure'?12:100,cmdURE=Math.min(S.topDemand,capacity);
@@ -97,12 +129,12 @@ const rvTarget=279.6*(S.flow/2648.9)+.003*derivative;
 S.rv1+=(clamp(rvTarget,80,450)-S.rv1)*dt/6.0;S.prevFlow=S.flow;
 S.dr=13.3875*(S.rv+1.03)-26.217+getInput('ratioTrim');
 const ffSP=clamp(S.rv1*(1+S.dr/100),50,500);
-S.v4SP=clamp(ctrls.ffic.sp+(ffSP-279.6),50,500); // SP base ajustável + correção antecipatória.
+S.v4SP=ctrls.ffic.mode==='CAS'?ffSP:ctrls.ffic.sp; // AUTO usa SP local; CAS recebe FF-533.
 S.flowControlOut=control('ffic',S.v4flow,dt,.085,.031,20.8,'V4Int',0,100,S.v4SP);
 S.levelControlOut=control('lic27',S.cond,dt,-1.5,-.014,13,'CondInt',0,100); // nível abaixo do SP restringe a saída (ação física esperada)
 const selection=$('ckProtection').checked&&S.levelControlOut<S.flowControlOut?'LIC-39527':'FFIC-39533';
 S.selected=selection;S.selectedOut=selection==='LIC-39527'?S.levelControlOut:S.flowControlOut;S.cmd533=S.selectedOut;
-if($('ckTracking').checked&&selection==='LIC-39527'&&ctrls.ffic.mode==='AUTO')S.V4Int=clamp(S.selectedOut-20.8-.085*(S.v4SP-S.v4flow),-150,150);
+if($('ckTracking').checked&&selection==='LIC-39527'&&ctrls.ffic.mode!=='MAN')S.V4Int=clamp(S.selectedOut-20.8-.085*(S.v4SP-S.v4flow),-150,150);
 S.mv533+=((fault==='valve533'?20.8:S.cmd533)-S.mv533)*dt/1.4;
 S.v4flow+=(clamp(273.5*S.mv533/20.8,0,650)-S.v4flow)*dt/1.6;
 S.cond=clamp(S.cond+dt*.013*(getInput('condIn')-S.v4flow),0,100);
@@ -115,20 +147,20 @@ if(S.flare<1&&S.flarePrev){log('Demanda de flare retornou abaixo de 1%.');S.flar
 if(S.stability<45&&!S.gasWarnPrev){log('Desvio elevado no indicador didático: verificar modos, SP e saturação.');S.gasWarnPrev=true;}
 if(S.stability>84)S.gasWarnPrev=false;
 }
-function collectHistory(){history.push({t:S.t,level:S.level,levelSP:ctrls.lic.sp,cond:S.cond,condSP:ctrls.lic27.sp,flash:S.flash,flashSP:ctrls.pic.effectiveSP,top:S.top,topSP:ctrls.pica.sp,flow:S.flow,flowSP:ctrls.fic.effectiveSP,v4flow:S.v4flow,v4SP:S.v4SP,dea11:S.q3911,dea11SP:ctrls.dea11.sp,dea12:S.q3912,dea12SP:ctrls.dea12.sp});if(history.length>300)history.shift();}
+function collectHistory(){history.push({t:S.t,level:S.level,levelSP:ctrls.lic.sp,cond:S.cond,condSP:ctrls.lic27.sp,flash:S.flash,flashSP:ctrls.pic.effectiveSP,top:S.top,topSP:ctrls.pica.sp,flow:S.flow,flowSP:ctrls.fic.effectiveSP,v4flow:S.v4flow,v4SP:S.v4SP,mvPic:S.flashDemand,valveA:S.valveIn,valveB:S.valveB,valveC:S.valveC,zicError:S.zicError,dea11:S.q3911,dea11SP:ctrls.dea11.sp,dea12:S.q3912,dea12SP:ctrls.dea12.sp});if(history.length>300)history.shift();}
 function render(){setT('simClock','t = '+fmt(S.t)+' s');
 setT('kLevel',fmt(S.level)+'%');setT('kFlash',fmt(S.flash,2)+' kgf/cm²');setT('kFeed',fmt(S.flow,1)+' m³/d');setT('kCond',fmt(S.cond)+'%');setT('kTop',fmt(S.top,2)+' kgf/cm²');
 setBar('barLevel',S.level);setBar('barFlash',S.flash/5*100);setBar('barFeed',S.flow/4000*100);setBar('barCond',S.cond);setBar('barTop',S.top/2*100);
 setT('feedSPK','SP efetivo = '+fmt(S.fICSP,1)+' m³/d');
 setT('outFeedSP',fmt(S.fICSP,1)+' m³/d');setT('outValve534',fmt(S.mv534)+'%');setT('outFlashSP',fmt(S.flashSP,2)+' kgf/cm²');setT('outValveIn',fmt(S.valveIn)+'%');setT('outValveOut',fmt(S.valveB)+' / '+fmt(S.valveC)+'%');setT('outDR',fmt(S.dr,2)+'%');setT('outV4SP',fmt(S.v4SP,1)+' / '+fmt(S.v4flow,1)+' t/d');setT('outSelected',S.selected);setT('outValve533',fmt(S.mv533)+'%');setT('outURE',fmt(S.ure)+'%');setT('outFlare',fmt(S.flare)+'%');
-setT('outZicDeadband',Math.abs(S.mv534-ctrls.zic.sp)<=3?'DENTRO ±3%':'FORA ±3%');setT('outDEA11',fmt(S.q3911,1)+' / '+fmt(ctrls.dea11.sp,1)+' m³/d');setT('outDEA12',fmt(S.q3912,1)+' / '+fmt(ctrls.dea12.sp,1)+' m³/d');
+setT('outZicDeadband',S.zicStatus+' · desvio '+fmt(S.zicError,1)+' p.p.');setT('outSplitStage',S.splitStage+' · MV '+fmt(S.flashDemand,1)+'%');setT('outSelectedMV',fmt(S.selectedOut,1)+'% (FFIC '+fmt(S.flowControlOut,1)+'%; LIC '+fmt(S.levelControlOut,1)+'%)');setT('outDEA11',fmt(S.q3911,1)+' / '+fmt(ctrls.dea11.sp,1)+' m³/d');setT('outDEA12',fmt(S.q3912,1)+' / '+fmt(ctrls.dea12.sp,1)+' m³/d');
 const stability=S.stability>85?'ESTÁVEL':S.stability>59?'EM ACOMODAÇÃO':'DESVIO ELEVADO';setT('kStability',stability);$('kStability').style.color=S.stability>85?'#0d8e70':S.stability>59?'#b68324':'#c95c51';setT('stabilityText',S.stability>85?'Variáveis próximas às referências':S.stability>59?'Controladores corrigindo perturbação':'Rever capacidade, limites e falhas');$('healthline').firstElementChild.style.width=fmt(S.stability,0)+'%';
 setT('svgLevel',fmt(S.level)+'%');setT('svgFlashP',fmt(S.flash,2));setT('svgZic',fmt(S.flashSP,2));setT('svgFeed',fmt(S.flow,0));setT('svgTop',fmt(S.top,2));setT('svgV4',fmt(S.v4flow,1));setT('svgCond',fmt(S.cond)+'%');const levelFill=$('towerFill'),h=clamp(S.level/100*160,3,160);levelFill.setAttribute('y',String(471-h));levelFill.setAttribute('height',String(h));
-const bars={'valve-534':S.mv534,'valve-533':S.mv533,'valve-518a':S.valveIn,'valve-518b':S.valveB+S.valveC,'valve-524a':S.ure,'valve-524b':S.flare};for(let id in bars){const el=$(id),value=bars[id];if(el){el.setAttribute('width',String(Math.max(1,value*.30)));el.style.fill=value>75?'#e6a044':value<5?'#92aaba':'#27bfa5';}}
+const bars={'valve-534':S.mv534,'valve-533':S.mv533,'valve-518a':S.valveIn,'valve-518b':S.valveB,'valve-518c':S.valveC,'valve-524a':S.ure,'valve-524b':S.flare};for(let id in bars){const el=$(id),value=bars[id];if(el){el.setAttribute('width',String(Math.max(1,value*.30)));el.style.fill=value>75?'#e6a044':value<5?'#92aaba':'#27bfa5';}}
 for(const d of controllerDefs){const c=ctrls[d.id],pv={lic:S.level,fic:S.flowPV,zic:S.mv534,pic:S.flash,ffic:S.v4flow,lic27:S.cond,pica:S.top,picb:S.top,dea11:S.q3911,dea12:S.q3912}[d.id];setT('pv-'+d.id,numFmt(pv,d.unit)+' '+d.unit);setT('mv-'+d.id,numFmt(outputFor(d.id),d.mvUnit)+' '+d.mvUnit);if(c.mode==='CAS'){$('sp-'+d.id).value=c.effectiveSP.toFixed(d.unit==='kgf/cm²'?2:1);} }
 }
 function drawChart(id,series,lo,hi){const canvas=$(id);if(!canvas)return;const r=canvas.getBoundingClientRect(),w=Math.max(170,r.width),h=165,dpr=Math.min(window.devicePixelRatio||1,2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);const left=49,right=w-10,top=10,bottom=h-22;ctx.font='10px Segoe UI,Arial';ctx.strokeStyle='#e4ebf0';ctx.fillStyle='#889eac';ctx.textAlign='right';for(let i=0;i<=4;i++){const val=lo+(hi-lo)*i/4,y=bottom-(bottom-top)*i/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillText(hi<=6?fmt(val,1):fmt(val,0),left-5,y+3);}if(history.length<2)return;const xx=i=>left+i/(history.length-1)*(right-left), yy=v=>bottom-clamp((v-lo)/(hi-lo),0,1)*(bottom-top);for(const se of series){ctx.strokeStyle=se.color;ctx.lineWidth=se.sp?1.35:2.1;ctx.setLineDash(se.sp?[4,3]:[]);ctx.beginPath();history.forEach((row,i)=>{const x=xx(i),y=yy(row[se.key]);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();}ctx.setLineDash([]);ctx.fillStyle='#8798a5';ctx.textAlign='left';ctx.fillText(fmt(history[0].t,0)+' s',left,bottom+15);ctx.textAlign='right';ctx.fillText(fmt(history.at(-1).t,0)+' s',right,bottom+15);}
-function drawCharts(){drawChart('chartLevels',[{key:'level',color:'#22a9a9'},{key:'cond',color:'#e4a349'},{key:'levelSP',color:'#9eafb9',sp:true},{key:'condSP',color:'#d2b38b',sp:true}],0,100);drawChart('chartPress',[{key:'flash',color:'#548ee0'},{key:'top',color:'#e4a349'},{key:'flashSP',color:'#a7c4df',sp:true},{key:'topSP',color:'#d4ba97',sp:true}],0,5);drawChart('chartFlows',[{key:'flow',color:'#23ac95'},{key:'flowSP',color:'#a8d9cb',sp:true},{key:'dea11',color:'#9774cc'},{key:'dea12',color:'#d0a04b'}],0,4500);drawChart('chartV4',[{key:'v4flow',color:'#9774cc'},{key:'v4SP',color:'#b4a8d7',sp:true}],0,500);}
+function drawCharts(){drawChart('chartLevels',[{key:'level',color:'#22a9a9'},{key:'cond',color:'#e4a349'},{key:'levelSP',color:'#9eafb9',sp:true},{key:'condSP',color:'#d2b38b',sp:true}],0,100);drawChart('chartPress',[{key:'flash',color:'#548ee0'},{key:'top',color:'#e4a349'},{key:'flashSP',color:'#a7c4df',sp:true},{key:'topSP',color:'#d4ba97',sp:true}],0,5);drawChart('chartFlows',[{key:'flow',color:'#23ac95'},{key:'flowSP',color:'#a8d9cb',sp:true},{key:'dea11',color:'#9774cc'},{key:'dea12',color:'#d0a04b'}],0,4500);drawChart('chartV4',[{key:'v4flow',color:'#9774cc'},{key:'v4SP',color:'#b4a8d7',sp:true}],0,500);drawChart('chartSplit',[{key:'mvPic',color:'#2f669b',sp:true},{key:'valveA',color:'#10a3a5'},{key:'valveB',color:'#dc9650'},{key:'valveC',color:'#9060cb'}],0,100);}
 function frame(now){let realDelta=Math.min((now-lastFrame)/1000,.10);lastFrame=now;if(running){let budget=realDelta*speed;while(budget>0){const dt=Math.min(.10,budget);advance(dt);budget-=dt;}renderClock+=realDelta;chartClock+=realDelta;if(renderClock>.09){render();renderClock=0;}if(chartClock>.25){collectHistory();drawCharts();chartClock=0;}}requestAnimationFrame(frame);}
 function pause(force){running=typeof force==='boolean'?!force:!running;setT('playPauseBtn',running?'Ⅱ Pausar':'▶ Continuar');setT('runLabel',running?'Simulação em execução':'Simulação pausada');$('runDot').style.background=running?'#43d9b0':'#e3a546';$('plantSvg').classList.toggle('paused',!running);}
 $('playPauseBtn').onclick=()=>pause();$('stepBtn').onclick=()=>{if(running)pause(true);for(let i=0;i<10;i++)advance(.1);collectHistory();render();drawCharts();};$('resetBtn').onclick=()=>{reset();drawCharts();};$('speedSel').onchange=e=>{speed=Number(e.target.value);toast('Velocidade de simulação: '+speed+'×');};$('clearTrendBtn').onclick=()=>{history=[];collectHistory();drawCharts();log('Tendências reiniciadas.');};$('clearLogBtn').onclick=()=>{$('eventLog').innerHTML='';log('Diário limpo.');};$('faultSel').onchange=()=>log('Falha didática selecionada: '+$('faultSel').selectedOptions[0].textContent+'.');
@@ -142,7 +174,7 @@ const questions=[
 {q:'A abertura solicitada à FV-534 aumenta, mas a vazão FT-534 diminui. Qual hipótese hidráulica é consistente?',a:['Aumento de pressão diferencial disponível na FV-534.','Redução do diferencial disponível na FV-534.','Elevação automática do setpoint LT-527.','Redução da resistência da FV-534 para a mesma abertura.'],correct:1,why:'O FIC pode exigir maior abertura quando o diferencial de pressão diminui, sem conseguir recuperar imediatamente a vazão.'},
 {q:'Qual é a principal razão para usar FIC-534 em cascata com LIC-518?',a:['Substituir medição de nível por medição de pressão.','Evitar qualquer limitação hidráulica da FV-534.','Corrigir distúrbios de vazão antes de grandes desvios de nível.','Obrigar a válvula de pressão do flash a ficar totalmente aberta.'],correct:2,why:'O FIC responde mais rapidamente às perturbações na vazão, enquanto o LIC mantém o inventário.'},
 {q:'O PIC-518 detecta pressão abaixo do SP no F-3931. Qual resposta física é consistente com o desenho?',a:['Abrir saída GAS OUT para diminuir inventário de gás.','Aumentar retirada V4 pela FV-533 prioritariamente.','Abrir PV-524B independentemente da pressão da E-3913.','Solicitar maior admissão de gás pela FV-518A.'],correct:3,why:'FV-518A está identificada como GAS IN; maior admissão tende a recuperar a pressão.'},
-{q:'Qual interpretação é correta sobre as válvulas FV-518B e FV-518C?',a:['A distribuição exata depende das curvas PY-518A/B.','As duas abrem sempre simultaneamente em 50%.','A FV-518C atua apenas se o LIC-527 estiver em manual.','A FV-518B precisa estar totalmente fechada na pressão alta.'],correct:0,why:'O diagrama indica saída de gás e split-range, mas não apresenta as faixas reais de atuação.'},
+{q:'Qual interpretação é correta sobre as válvulas FV-518B e FV-518C?',a:['As faixas precisam conferir com a curva informada para PY-518A/B.','As duas abrem sempre simultaneamente em 50%.','A FV-518C atua apenas se o LIC-527 estiver em manual.','A FV-518B precisa estar totalmente fechada na pressão alta.'],correct:0,why:'O diagrama indica saída de gás e split-range, mas não apresenta as faixas reais de atuação.'},
 {q:'Por que o ZIC-502 possui função identificada como DB?',a:['Para aumentar a frequência de mudanças de referência.','Para filtrar pequenas variações de posição sem alterar o SP.','Para substituir o FT-534 nas correções da vazão.','Para converter a indicação do LT-518 em pressão absoluta.'],correct:1,why:'A banda morta reduz movimentações desnecessárias de setpoint e interações oscilatórias.'},
 {q:'Se a correção DR calculada for +10%, qual referência resulta da expressão indicada?',a:['SP = RV1 − 10 unidades físicas de vazão.','SP = RV1 dividido por 1,10.','SP = RV1 multiplicado por 1,10.','SP = RV1 somado a RV diretamente.'],correct:2,why:'A fórmula exibida é SP = RV1 × (1 + DR/100).'},
 {q:'O FFIC-533 indica SP acima da PV, mas a FV-533 continua restringida. Qual observação é mais importante?',a:['A abertura da PV-524B sempre aumenta primeiro.','O LT-518 necessariamente está com a PV falsa.','O ZIC-502 necessariamente desligou a cascata.','O FFY-533Y pode estar selecionando o LIC-527.'],correct:3,why:'O FFY-533Y seleciona a menor demanda, que pode limitar a abertura pedida pelo FFIC.'},
