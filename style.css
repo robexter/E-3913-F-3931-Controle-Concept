@@ -24,3 +24,7 @@
 
 /* V1.3.4 — Nota da seleção, com responsividade mobile */
 .selector-note{display:block;margin:10px 14px 16px;color:#647b8d;font-size:11px;line-height:1.55;overflow-wrap:anywhere}
+
+/* V1.3.6: sinalização sem alterar grade de controles, com números de pressão e temperatura responsivos */
+.signal-table b[id="outTopRoute"]{overflow-wrap:anywhere;line-height:1.35}
+.signal-table b[id="outStripTemp"],.signal-table b[id="outSteamGasSource"]{font-variant-numeric:tabular-nums;overflow-wrap:break-word}
