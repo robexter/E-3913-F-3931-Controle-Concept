@@ -2,7 +2,7 @@
   "id": "./",
   "name": "E-3913 e F-3931 — Controle Concept",
   "short_name": "E3913 Concept",
-  "description": "Controle Concept V1.3.2: PV/SP em unidades do SDCD, modos MAN/AUTO/CAS, banda morta ZIC 3%, consumos DEA E-3911 e E-3912, intertravamento didático.",
+  "description": "Controle Concept V1.3.3: PV/SP em unidades do SDCD, modos MAN/AUTO/CAS, banda morta ZIC 3%, consumos DEA E-3911 e E-3912, intertravamento didático.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
