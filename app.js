@@ -1,10 +1,10 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),qsa=sel=>[...document.querySelectorAll(sel)],clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),fmt=(n,d=1)=>Number(n).toFixed(d).replace('.',','),rand=items=>[...items].sort(()=>Math.random()-.5);
 const explanations={
-'LIC-518':['LIC-518 — Controle de nível','LT-518 transmite a PV de nível da E-3913. O LIC compara com SP = 48% e ajusta o SP remoto do FIC-534. Nível baixo → aumento esperado da referência de vazão; nível alto → redução. A capacidade de recuperação depende da retirada de líquido e da autoridade da FV-534.'],
+'LIC-518':['LIC-39518 — Controle de nível','LT-518 transmite a PV de nível da E-3913. Na captura atual LIC-39518 apresenta SP = 69% (diagrama didático anterior: 48%) e ajusta o SP remoto do FIC-534. Nível baixo → aumento esperado da referência de vazão; nível alto → redução. A capacidade de recuperação depende da retirada de líquido e da autoridade da FV-534.'],
 'FIC-534':['FIC-534 — Malha interna da cascata','O FIC-534 compara o SP enviado pelo LIC-518 com a vazão FT-534 e calcula a solicitação de FV-534. Corrige variações hidráulicas mais rapidamente do que a malha de nível. Se a FV saturar ou o FT falhar, a cascata pode perder efetividade.'],
 'FV-534':['FV-534 — Válvula de DEA rica','Elemento final da alimentação da E-3913. Para vazão líquida em regime admissível, Q é função de Cv(abertura) e da raiz de ΔP. Uma mesma abertura não garante mesma vazão sob diferentes pressões. ZIC-502 utiliza um sinal associado à posição de controle desta válvula.'],
-'ZIC-502':['ZIC-502 — Controle de posição / VPC','Recebe sinal associado à saída do FIC-534 e fornece SP ao PIC-518. Função conceitual: ajustar lentamente a pressão do tambor para preservar capacidade hidráulica e margem de atuação na FV-534. Possui DB, mas seus parâmetros e ação real precisam de confirmação no Centum VP.'],
+'ZIC-502':['ZIC-502 — Controle de posição / VPC','Recebe sinal associado à saída do FIC-534 e fornece SP ao PIC-518. Função conceitual: ajustar lentamente a pressão do tambor para preservar capacidade hidráulica e margem de atuação na FV-534. Banda morta do ZIC-39502: 3 pontos percentuais conforme informação operacional; ação final real precisa de confirmação no Centum VP.'],
 'PIC-518':['PIC-518 — Pressão do F-3931','PT-518 mede pressão do tambor flash. PIC-518 recebe a referência relacionada ao ZIC-502 e envia sua ação aos blocos split-range PY-518A/B. Admissão GAS IN tende a aumentar pressão; retirada GAS OUT tende a diminuir pressão. As faixas reais das válvulas não estão especificadas no desenho.'],
 'FV-518A':['FV-518A — GAS IN','Válvula de admissão de gás do tambor flash F-3931. Em pressão abaixo da referência, sua maior abertura tende a recuperar a pressão se houver gás disponível a pressão adequada. Verifique a capacidade e a fonte antes de atribuir uma pressão baixa somente ao controle.'],
 'FV-518B':['FV-518B / FV-518C — GAS OUT','Válvulas de retirada de gás do F-3931. Com pressão elevada, a maior saída tende a despressurizar o tambor. A curva de divisão entre B e C necessita conferência no PY-518A/B; o exemplo animado usa acionamento escalonado.'],
@@ -22,80 +22,120 @@ qsa('[data-hotspot]').forEach(el=>{el.addEventListener('click',()=>explain(el.da
 qsa('[data-view]').forEach(b=>b.addEventListener('click',()=>{qsa('[data-view]').forEach(x=>x.classList.toggle('active',x===b));$('liveView').hidden=b.dataset.view!=='live';$('originalView').hidden=b.dataset.view!=='orig';}));
 $('zoomOriginal').onclick=()=>$('diagramModal').hidden=false;$('closeModal').onclick=()=>$('diagramModal').hidden=true;qsa('[data-close-modal]').forEach(x=>x.onclick=()=>$('diagramModal').hidden=true);document.addEventListener('keydown',e=>{if(e.key==='Escape')$('diagramModal').hidden=true;});
 let toastTimer=0;function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),4200);}
-const inputIds=['demand','supply','flashGas','gasGen','condIn','zicTarget','ratioTrim'];const defaults={demand:55,supply:50,flashGas:0,gasGen:50,condIn:50,zicTarget:50,ratioTrim:0};const getInput=id=>Number($('in-'+id).value);
-function updateInputLabel(id){const v=getInput(id),units={demand:'%',supply:' idx',flashGas:'',gasGen:' idx',condIn:'%',zicTarget:'%',ratioTrim:'%'};$('v-'+id).textContent=(id==='flashGas'&&v>0?'+':'')+v+units[id];}
-inputIds.forEach(id=>{$('in-'+id).addEventListener('input',()=>{updateInputLabel(id);if(id==='zicTarget')log(`Referência didática do ZIC-502 ajustada para ${getInput(id)}%.`,false);});updateInputLabel(id);});
-const initial=()=>({t:0,level:48,cond:52,flash:50,top:50,flow:55,flowPV:55,v4flow:50,ftFrozenValue:55,fICSP:55,flashSP:50,v4SP:50,dr:0,rv:0.93,rv1:50,prevFlow:55,mv534:50,cmd534:50,mv533:50,cmd533:50,valveIn:0,valveB:0,valveC:0,ure:30,flare:0,flowControlOut:50,levelControlOut:85,selected:'FFIC-533',selectedOut:50,LInt:0,FInt:0,FlashInt:0,ZTrim:0,TopInt:0,V4Int:0,CondInt:0,cascadeHold:55,topDemand:30,flashDemand:0,stability:100,flarePrev:false,selectedPrev:'FFIC-533',faultPrev:'none',gasWarnPrev:false});let S=initial(),running=true,speed=1,lastFrame=performance.now(),renderClock=0,chartClock=0,logClock=0,history=[];
-function log(msg,highlight=true){const el=$('eventLog'),p=document.createElement('div');p.className='log-line';const t=document.createElement('time');t.textContent=`${fmt(S.t,0)} s`;const sp=document.createElement('span');sp.textContent=msg;if(highlight)sp.style.fontWeight='750';p.append(t,sp);el.prepend(p);while(el.children.length>55)el.lastElementChild.remove();}
-function reset(keepInputs=false){S=initial();history=[];if(!keepInputs){for(const id of inputIds){$('in-'+id).value=defaults[id];updateInputLabel(id);}$('faultSel').value='none';for(const id of ['ckCascade','ckZic','ckProtection','ckTracking'])$(id).checked=true;}$('eventLog').innerHTML='';log('Modelo reiniciado; operação didática em equilíbrio.');collectHistory();render();}
-function modPI(error,intKey,kp,ki,base=0,dt=.1,lo=0,hi=100){let integral=S[intKey],pre=base+kp*error+integral;if((pre>lo&&pre<hi)||(pre>=hi&&error<0)||(pre<=lo&&error>0))integral=clamp(integral+ki*error*dt,-150,150);S[intKey]=integral;return clamp(base+kp*error+integral,lo,hi);}
-function advance(dt){const fault=$('faultSel').value;
-// Cascata LIC-518 / FIC-534: o único SP real exibido é 48%.
-const eL=48-S.level;S.fICSP=$('ckCascade').checked?modPI(eL,'LInt',1.42,.034,55,dt,15,95):55;
-S.flowPV=fault==='ft534'?S.ftFrozenValue:S.flow;
-S.cmd534=modPI(S.fICSP-S.flowPV,'FInt',1.45,.65,50,dt,0,100);
-let effectiveCmd=fault==='valve534'?50:S.cmd534;S.mv534+=clamp((effectiveCmd-S.mv534)*dt/1.25,-8*dt,8*dt);
-// Hidráulica adimensional: pressões são índices; não são valores de projeto.
-const hd=clamp(.55*(getInput('supply')/50)+.45*(S.flash/50)-.05*(S.top/50-1),.12,2.25);
-const qTarget=clamp(1.10*S.mv534*Math.sqrt(hd),0,115);S.flow+=(qTarget-S.flow)*dt/1.35;
-S.level=clamp(S.level+dt*.072*(S.flow-getInput('demand')),0,100);
-// ZIC-502: hipótese explícita de VPC lento com deadband didático de 4%.
-let ep=S.cmd534-getInput('zicTarget');if($('ckZic').checked&&Math.abs(ep)>4){const activeErr=ep-Math.sign(ep)*4;S.ZTrim=clamp(S.ZTrim+.038*activeErr*dt,-18,18);}S.flashSP=clamp(50+S.ZTrim,32,68);
-// split-range didático: GAS IN se pressão baixa; GAS OUT B→C se pressão alta.
-S.flashDemand=modPI(S.flashSP-S.flash,'FlashInt',2.8,.36,0,dt,-100,100);
-const cmdIn=clamp(S.flashDemand,0,100),cmdB=clamp(-S.flashDemand,0,50),cmdC=clamp(-S.flashDemand-50,0,50);
-S.valveIn+=(cmdIn-S.valveIn)*dt/1.10;S.valveB+=(cmdB-S.valveB)*dt/1.10;S.valveC+=(cmdC-S.valveC)*dt/1.10;
-S.flash=clamp(S.flash+dt*(.25*S.valveIn-.225*(S.valveB+S.valveC)+.075*getInput('flashGas')+.017*(S.flow-55)),8,95);
-// Pressão de topo PIC-524A/B. DB=3 aplicado somente a índices hipotéticos.
-S.topDemand=modPI(S.top-50,'TopInt',3.5,.35,30,dt,0,100);
-const capacity=fault==='ure'?24:100;
-const cmdURE=Math.min(S.topDemand,capacity),cmdFlare=clamp((S.top-53)*5.4+Math.max(0,S.topDemand-capacity)*.9,0,100);
-S.ure+=(cmdURE-S.ure)*dt/1.3;S.flare+=(cmdFlare-S.flare)*dt/1.2;
-S.top=clamp(S.top+dt*(.135*(getInput('gasGen')-50)-.116*(S.ure-30)-.22*S.flare+.005*(S.flow-55)),7,98);
-// RV de ensino: proxy da demanda de retirada, não a origem confirmada do FY-533.
-S.rv=clamp(.93+.006*(S.topDemand-30),.2,1.8);
-// aproximação lead/lag: filtragem + pequena antecipação discreta.
-const derivative=clamp((S.flow-S.prevFlow)/Math.max(dt,.001),-10,10);
-const rv1Target=clamp(50+.72*(S.flow-55)+.10*derivative,15,105);S.rv1+=(rv1Target-S.rv1)*dt/6.5;S.prevFlow=S.flow;
-const rawDR=13.3875*(S.rv+1.03)-26.217;
-S.dr=rawDR+getInput('ratioTrim');S.v4SP=clamp(S.rv1*(1+S.dr/100),8,96);
-// Seletor de mínima FFY-533Y com tracking ao não-selecionado.
-const v4err=S.v4SP-S.v4flow,ctrlFFIC=modPI(v4err,'V4Int',1.65,.45,50,dt,0,100);
-const cErr=S.cond-52,ctrlLIC=modPI(cErr,'CondInt',6.0,.035,85,dt,0,100);
-const selection=$('ckProtection').checked&&ctrlLIC<ctrlFFIC?'LIC-527':'FFIC-533';const selected=selection==='LIC-527'?ctrlLIC:ctrlFFIC;
-if($('ckTracking').checked&&selection==='LIC-527')S.V4Int=clamp(selected-50-1.65*v4err,-110,110);
-S.flowControlOut=ctrlFFIC;S.levelControlOut=ctrlLIC;S.selected=selection;S.selectedOut=selected;S.cmd533=selected;
-S.mv533+=((fault==='valve533'?50:S.cmd533)-S.mv533)*dt/1.45;
-S.v4flow+=(clamp(S.mv533*(.98+.02*S.flash/50),0,110)-S.v4flow)*dt/1.5;
-S.cond=clamp(S.cond+dt*.092*(getInput('condIn')-S.v4flow),0,100);
-// Métrica heurística de treinamento, não estado do processo real.
-const error=Math.abs(S.level-48)*2.4+Math.abs(S.flash-S.flashSP)*1.6+Math.abs(S.top-50)*1.6+Math.abs(S.cond-52)*.65+Math.abs(S.flow-S.fICSP)*.7;
-S.stability=clamp(100-error,0,100);S.t+=dt;
-if(S.selected!==S.selectedPrev){log(`FFY-533Y transferiu autoridade para ${S.selected}; a FV-533 acompanha o menor sinal.`);S.selectedPrev=S.selected;}
-if(S.flare>3&&!S.flarePrev){log('PIC-524B passou a solicitar a rota de flare (modelo didático; confirmar lógica real).');S.flarePrev=true;}
-if(S.flare<1&&S.flarePrev){log('A solicitação didática para flare retornou abaixo de 1%.');S.flarePrev=false;}
-if(S.t>0&&S.stability<45&&!S.gasWarnPrev){log('Grandes desvios: investigar saturações e sinais antes de atribuir falha ao controlador.');S.gasWarnPrev=true;}
-if(S.stability>84)S.gasWarnPrev=false;
-}
-function collectHistory(){history.push({t:S.t,level:S.level,cond:S.cond,flash:S.flash,flashSP:S.flashSP,top:S.top,topSP:50,flow:S.flow,flowSP:S.fICSP,v4flow:S.v4flow,v4SP:S.v4SP});if(history.length>270)history.shift();}
+const inputIds=['demand','supply','flashGas','gasGen','condIn','ratioTrim'];
+const defaults={demand:2648.9,supply:100,flashGas:0,gasGen:100,condIn:273.5,ratioTrim:0};
+const inputUnit={demand:'m³/d',supply:'%',flashGas:'%',gasGen:'%',condIn:'t/d',ratioTrim:'%'};
+const getInput=id=>Number($('in-'+id).value);
+function updateInputLabel(id){const v=getInput(id);setT('v-'+id,fmt(v,(id==='demand'||id==='condIn')?1:0)+' '+inputUnit[id]);}
+inputIds.forEach(id=>{$('in-'+id).addEventListener('input',()=>{updateInputLabel(id);if(typeof S!=='undefined')log('Perturbação ajustada: '+id+' = '+fmt(getInput(id),1)+' '+inputUnit[id],false);});updateInputLabel(id);});
+// Valores iniciais transcritos das capturas do SDCD; FFIC-39521 não está visível e usa hipótese rotulada.
+// Unidades exibidas como "Kg" na tela são representadas aqui como kgf/cm² (interpretação a confirmar na engenharia).
+const controllerDefs=[
+ {id:'lic',tag:'LIC-39518',label:'Nível E-3913',unit:'%',pv:69,sp:69,mv:2658.7,min:0,max:100,step:.1,modes:['AUTO','MAN'],mvUnit:'m³/d',mvMin:1000,mvMax:4300},
+ {id:'fic',tag:'FIC-39534',label:'DEA rica para E-3913',unit:'m³/d',pv:2648.9,sp:2658.7,mv:71,min:500,max:4300,step:.1,modes:['MAN','AUTO','CAS'],mvUnit:'%',mvMin:0,mvMax:100},
+ {id:'zic',tag:'ZIC-39502',label:'Posição FV-534 · DB 3%',unit:'%',pv:71,sp:72,mv:3.1,min:5,max:95,step:.1,modes:['AUTO','MAN'],mvUnit:'kgf/cm²',mvMin:1.2,mvMax:5},
+ {id:'pic',tag:'PIC-39518',label:'Pressão F-3931',unit:'kgf/cm²',pv:3.06,sp:3,mv:53,min:1.2,max:5,step:.01,modes:['MAN','AUTO','CAS'],mvUnit:'%',mvMin:0,mvMax:100},
+ {id:'ffic',tag:'FFIC-39533',label:'V4/condensado',unit:'t/d',pv:273.5,sp:279.6,mv:20.8,min:50,max:500,step:.1,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
+ {id:'lic27',tag:'LIC-39527',label:'Nível F-3933',unit:'%',pv:82,sp:75,mv:23.5,min:0,max:100,step:.1,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
+ {id:'pica',tag:'PIC-39524A',label:'Pressão E-3913 · URE',unit:'kgf/cm²',pv:.60,sp:.60,mv:15,min:0,max:2,step:.01,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
+ {id:'picb',tag:'PIC-39524B',label:'Pressão E-3913 · flare',unit:'kgf/cm²',pv:.60,sp:.70,mv:0,min:0,max:2,step:.01,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
+ {id:'dea11',tag:'FFIC-39522',label:'Consumo de DEA E-3911',unit:'m³/d',pv:1297,sp:1300,mv:39.3,min:0,max:3000,step:1,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100},
+ {id:'dea12',tag:'FFIC-39521',label:'Consumo de DEA E-3912 · exemplo',unit:'m³/d',pv:1200,sp:1200,mv:40,min:0,max:3000,step:1,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100,assumed:true}
+];
+const ctrls={};for(const def of controllerDefs){ctrls[def.id]={def,mode:def.id==='fic'||def.id==='pic'?'CAS':'AUTO',sp:def.sp,mv:def.mv,effectiveSP:def.sp};}
+const initial=()=>({t:0,level:69,cond:82,flash:3.06,top:.60,flow:2648.9,flowPV:2648.9,v4flow:273.5,q3911:1297,q3912:1200,returnDemand:2648.9,ftFrozenValue:2648.9,fICSP:2658.7,flashSP:3.00,v4SP:279.6,dr:0,rv:.93,rv1:279.6,prevFlow:2648.9,mv534:71,cmd534:71,mv533:20.8,cmd533:20.8,valveIn:6,valveB:0,valveC:0,ure:15,flare:0,flowControlOut:20.8,levelControlOut:23.5,selected:'FFIC-39533',selectedOut:20.8,LInt:0,FInt:0,FlashInt:0,ZTrim:0,TopInt:0,V4Int:0,CondInt:0,D11Int:0,D12Int:0,FlareInt:0,topDemand:15,flashDemand:53,stability:100,flarePrev:false,selectedPrev:'FFIC-39533',gasWarnPrev:false});
+let S=initial(),running=true,speed=1,lastFrame=performance.now(),renderClock=0,chartClock=0,history=[];
+function log(msg,highlight=true){const el=$('eventLog'),p=document.createElement('div');p.className='log-line';const t=document.createElement('time');t.textContent=`${fmt(S.t,0)} s`;const sp=document.createElement('span');sp.textContent=msg;if(highlight)sp.style.fontWeight='750';p.append(t,sp);el.prepend(p);while(el.children.length>60)el.lastElementChild.remove();}
 function setT(id,value){const x=$(id);if(x)x.textContent=value;}
 function setBar(id,v){const x=$(id);if(x)x.style.width=`${clamp(v,0,100)}%`;}
-function render(){setT('simClock',`t = ${fmt(S.t)} s`);setT('kLevel',fmt(S.level)+'%');setT('kFlash',fmt(S.flash)+' idx');setT('kFeed',fmt(S.flow)+'% ref.');setT('kCond',fmt(S.cond)+'%');setT('kTop',fmt(S.top)+' idx');['Level','Flash','Feed','Cond','Top'].forEach((n,i)=>setBar('bar'+n,[S.level,S.flash,S.flow,S.cond,S.top][i]));
-setT('feedSPK',`SP = ${fmt(S.fICSP)}% ref.`);setT('outFeedSP',fmt(S.fICSP));setT('outValve534',fmt(S.mv534)+'%');setT('outFlashSP',fmt(S.flashSP));setT('outValveIn',fmt(S.valveIn)+'%');setT('outValveOut',fmt(S.valveB)+' / '+fmt(S.valveC)+'%');setT('outDR',fmt(S.dr,2)+'%');setT('outV4SP',`${fmt(S.v4SP)} / ${fmt(S.v4flow)}`);setT('outSelected',S.selected);setT('outValve533',fmt(S.mv533)+'%');setT('outURE',fmt(S.ure)+'%');setT('outFlare',fmt(S.flare)+'%');
-const stability=S.stability>85?'ESTÁVEL':S.stability>59?'EM ACOMODAÇÃO':'DESVIO ELEVADO';setT('kStability',stability);$('kStability').style.color=S.stability>85?'#0d8e70':S.stability>59?'#b68324':'#c95c51';setT('stabilityText',S.stability>85?'Variáveis próximas às referências':S.stability>59?'Controladores corrigindo perturbação':'Rever capacidade, limites e falhas');$('healthline').firstElementChild.style.width=fmt(S.stability,0)+'%';
-setT('svgLevel',fmt(S.level)+'%');setT('svgFlashP',fmt(S.flash));setT('svgZic',fmt(S.flashSP));setT('svgFeed',fmt(S.flow));setT('svgTop',fmt(S.top));setT('svgV4',fmt(S.v4flow));setT('svgCond',fmt(S.cond)+'%');const levelFill=$('towerFill'),h=clamp(S.level/100*160,3,160);levelFill.setAttribute('y',String(471-h));levelFill.setAttribute('height',String(h));
-const bars={'valve-534':S.mv534,'valve-533':S.mv533,'valve-518a':S.valveIn,'valve-518b':S.valveB+S.valveC,'valve-524a':S.ure,'valve-524b':S.flare};for(let id in bars){const el=$(id),value=bars[id];if(el){el.setAttribute('width',String(Math.max(1,value*.30)));el.style.fill=value>75?'#e6a044':value<5?'#92aaba':'#27bfa5';}}
+function numFmt(v,unit){const d=unit==='kgf/cm²'?2:unit==='m³/d'||unit==='t/d'?1:1;return fmt(v,d);}
+function makeModePanel(){const host=$('operatingControllers');if(!host)return;host.innerHTML=controllerDefs.map(d=>{const c=ctrls[d.id];return `<div class="op-card" data-controller="${d.id}"><div class="op-title"><strong>${d.tag}</strong><span>${d.label}</span>${d.assumed?'<em>SP/PV de partida demonstrativos — não constam das capturas</em>':''}</div><div class="op-data"><div><small>PV</small><b id="pv-${d.id}">${numFmt(d.pv,d.unit)} <small>${d.unit}</small></b></div><label><small id="sp-label-${d.id}">SP editável</small><input type="number" inputmode="decimal" id="sp-${d.id}" min="${d.min}" max="${d.max}" step="${d.step}" value="${d.sp}"></label><label><small>Modo</small><select id="mode-${d.id}">${d.modes.map(m=>`<option value="${m}" ${m===c.mode?'selected':''}>${m}</option>`).join('')}</select></label><div><small>MV / saída</small><b id="mv-${d.id}">${numFmt(d.mv,d.mvUnit)} <small>${d.mvUnit}</small></b></div></div><div class="op-manual" id="manual-wrap-${d.id}" hidden><label for="manual-${d.id}">Saída em MAN (${d.mvUnit}):</label><input id="manual-${d.id}" type="number" inputmode="decimal" min="${d.mvMin}" max="${d.mvMax}" step="${d.mvUnit==='kgf/cm²'?.01:.1}" value="${d.mv}"></div><small class="op-message" id="hint-${d.id}"></small></div>`;}).join('');
+for(const d of controllerDefs){const c=ctrls[d.id];$('mode-'+d.id).addEventListener('change',e=>{const m=e.target.value;if(!d.modes.includes(m)){e.target.value=c.mode;return;}c.mv=outputFor(d.id);$('manual-'+d.id).value=String(clamp(c.mv,d.mvMin,d.mvMax));c.mode=m;modeFields(d.id);log(d.tag+' passou para '+m+'.');});$('sp-'+d.id).addEventListener('change',e=>{if(c.mode!=='AUTO'){e.target.value=c.sp;return;}const v=Number(e.target.value);if(!Number.isFinite(v)){e.target.value=c.sp;return;}c.sp=clamp(v,d.min,d.max);e.target.value=String(c.sp);log('SP de '+d.tag+' alterado para '+numFmt(c.sp,d.unit)+' '+d.unit+'.');});$('manual-'+d.id).addEventListener('change',e=>{if(c.mode!=='MAN')return;const v=Number(e.target.value);if(Number.isFinite(v))c.mv=clamp(v,d.mvMin,d.mvMax);e.target.value=String(c.mv);log('MV manual de '+d.tag+' = '+numFmt(c.mv,d.mvUnit)+' '+d.mvUnit);});modeFields(d.id);}}
+function modeFields(id){const c=ctrls[id],d=c.def,sp=$('sp-'+id);setT('sp-label-'+id,c.mode==='CAS'?'SP remoto':c.mode==='MAN'?'SP inativo':'SP editável');sp.disabled=c.mode!=='AUTO';$('manual-wrap-'+id).hidden=c.mode!=='MAN';$('hint-'+id).textContent=c.mode==='CAS'?'CAS: SP remoto recebido da malha mestre; altere o SP no controlador mestre.':c.mode==='MAN'?'MAN: saída fixa pelo operador; alteração do SP não comanda a válvula.':'AUTO: ajuste o SP e acompanhe PV e MV.';}
+function outputFor(id){return {lic:S.fICSP,fic:S.cmd534,zic:S.flashSP,pic:S.flashDemand,ffic:S.flowControlOut,lic27:S.levelControlOut,pica:S.topDemand,picb:S.flare,dea11:(ctrls.dea11.actualMV??ctrls.dea11.mv),dea12:(ctrls.dea12.actualMV??ctrls.dea12.mv)}[id]??ctrls[id].mv;}
+function reset(keepInputs=false){S=initial();history=[];if(!keepInputs){for(const id of inputIds){$('in-'+id).value=defaults[id];updateInputLabel(id);} $('faultSel').value='none';for(const id of ['ckZic','ckProtection','ckTracking'])$(id).checked=true;for(const d of controllerDefs){const c=ctrls[d.id];c.sp=d.sp;c.mv=d.mv;c.mode=d.id==='fic'||d.id==='pic'?'CAS':'AUTO';$('mode-'+d.id).value=c.mode;$('sp-'+d.id).value=c.sp;$('manual-'+d.id).value=c.mv;modeFields(d.id);}}$('eventLog').innerHTML='';log('Simulação reiniciada nas referências das capturas; FFIC-39521 permanece um exemplo editável.');collectHistory();render();}
+function modPI(error,intKey,kp,ki,base,dt,lo,hi){let integral=S[intKey]||0;const pre=base+kp*error+integral;if((pre>lo&&pre<hi)||(pre>=hi&&error<0)||(pre<=lo&&error>0))integral=clamp(integral+ki*error*dt,-1200,1200);S[intKey]=integral;return clamp(base+kp*error+integral,lo,hi);}
+function control(id,pv,dt,kp,ki,base,iKey,lo=0,hi=100,spOverride=null){const c=ctrls[id];c.effectiveSP=spOverride===null?c.sp:spOverride;const value=c.mode==='MAN'?clamp(c.mv,lo,hi):modPI(c.effectiveSP-pv,iKey,kp,ki,base,dt,lo,hi);c.actualMV=value;return value;}
+function advance(dt){const fault=$('faultSel').value;
+// 1) Absorvedoras E-3911 e E-3912: dois consumos de DEA independentes (FFC 39522 / 39521).
+const out11=control('dea11',S.q3911,dt,.034,.018,39.3,'D11Int');const out12=control('dea12',S.q3912,dt,.036,.019,40,'D12Int');
+S.q3911+=(clamp(1297*out11/39.3,0,3100)-S.q3911)*dt/2.2;S.q3912+=(clamp(1200*out12/40,0,3100)-S.q3912)*dt/2.3;
+// Dinâmica didática do retorno: acréscimo de consumo altera a demanda da E-3913 com atraso; não é balanço de planta validado.
+const demandTarget=getInput('demand')+(S.q3911-1297)+(S.q3912-1200);S.returnDemand+=(clamp(demandTarget,800,4400)-S.returnDemand)*dt/6.0;
+// 2) Inventário E-3913 e cascata de FIC-39534; MAN e CAS efetivamente diferentes.
+const lic=ctrls.lic;S.fICSP=control('lic',S.level,dt,21,.09,2658.7,'LInt',1000,4300);
+const fic=ctrls.fic;const spFic=fic.mode==='CAS'?S.fICSP:fic.sp;S.flowPV=fault==='ft534'?S.ftFrozenValue:S.flow;
+S.cmd534=control('fic',S.flowPV,dt,.022,.018,71,'FInt',0,100,spFic);
+const desiredValve=fault==='valve534'?71:S.cmd534;S.mv534+=(desiredValve-S.mv534)*dt/1.3;
+const hd=clamp((getInput('supply')/100)*(S.flash/3.06),.15,2.4);
+S.flow+=(clamp(2648.9*(S.mv534/71)*Math.sqrt(hd),0,4800)-S.flow)*dt/1.65;
+S.level=clamp(S.level+dt*.002*(S.flow-S.returnDemand),0,100);
+// 3) ZIC-39502: deadband comprovada pelo usuário de ±3 pontos percentuais de posição.
+const zic=ctrls.zic;zic.effectiveSP=zic.sp;const errZ=S.mv534-zic.sp;
+if(zic.mode==='AUTO'&&$('ckZic').checked&&Math.abs(errZ)>3){S.ZTrim=clamp(S.ZTrim+.0014*(errZ-Math.sign(errZ)*3)*dt,-1.0,1.0);}
+S.flashSP=zic.mode==='MAN'?clamp(zic.mv,1.2,5):clamp(3.1+S.ZTrim,1.2,5);
+zic.actualMV=S.flashSP;
+// 4) Pressão F-3931: PIC-39518 MAN / AUTO / CAS; dois ramos GAS IN e GAS OUT.
+const pic=ctrls.pic;const picSP=pic.mode==='CAS'?S.flashSP:pic.sp;
+S.flashDemand=control('pic',S.flash,dt,40,2.1,53,'FlashInt',0,100,picSP);
+const inCmd=clamp((S.flashDemand-50)*2,0,100),outCmd=clamp((50-S.flashDemand)*2,0,100);
+S.valveIn+=(inCmd-S.valveIn)*dt/1.0;S.valveB+=(Math.min(outCmd,50)-S.valveB)*dt/1.0;S.valveC+=(Math.max(0,outCmd-50)-S.valveC)*dt/1.0;
+S.flash=clamp(S.flash+dt*(.0014*(S.valveIn-6)-.0018*(S.valveB+S.valveC)+.00016*getInput('flashGas')+.000002*(S.flow-2648.9)),1.2,5.0);
+// 5) Pressão de topo E-3913; rotas URE e flare com SP em kgf/cm² (DB=3 original sem unidade conhecida).
+S.topDemand=control('pica',S.top,dt,65,3.0,15,'TopInt',0,100);
+const capacity=fault==='ure'?12:100,cmdURE=Math.min(S.topDemand,capacity);
+const b=ctrls.picb;let cmdFlare;
+if(b.mode==='MAN')cmdFlare=clamp(b.mv,0,100);
+else {const demandB=Math.max(0,S.top-b.sp);cmdFlare=modPI(demandB,'FlareInt',210,5.5,0,dt,0,100);if(S.top<b.sp-.018)S.FlareInt=0;}
+b.actualMV=cmdFlare;
+S.ure+=(cmdURE-S.ure)*dt/1.3;S.flare+=(cmdFlare-S.flare)*dt/1.25;
+S.top=clamp(S.top+dt*(.00024*(getInput('gasGen')-100)-.0012*(S.ure-15)-.0019*S.flare+.0000025*(S.flow-2648.9)),0.05,2.0);
+// 6) DR e SP de V4 em t/d, seletor de mínima entre FFIC-39533 e LIC-39527.
+S.rv=clamp(.93+.002*(S.topDemand-15),.2,1.8);
+const derivative=clamp((S.flow-S.prevFlow)/Math.max(dt,.01),-500,500);
+const rvTarget=279.6*(S.flow/2648.9)+.003*derivative;
+S.rv1+=(clamp(rvTarget,80,450)-S.rv1)*dt/6.0;S.prevFlow=S.flow;
+S.dr=13.3875*(S.rv+1.03)-26.217+getInput('ratioTrim');
+const ffSP=clamp(S.rv1*(1+S.dr/100),50,500);
+S.v4SP=clamp(ctrls.ffic.sp+(ffSP-279.6),50,500); // SP base ajustável + correção antecipatória.
+S.flowControlOut=control('ffic',S.v4flow,dt,.085,.031,20.8,'V4Int',0,100,S.v4SP);
+S.levelControlOut=control('lic27',S.cond,dt,-1.5,-.014,13,'CondInt',0,100); // nível abaixo do SP restringe a saída (ação física esperada)
+const selection=$('ckProtection').checked&&S.levelControlOut<S.flowControlOut?'LIC-39527':'FFIC-39533';
+S.selected=selection;S.selectedOut=selection==='LIC-39527'?S.levelControlOut:S.flowControlOut;S.cmd533=S.selectedOut;
+if($('ckTracking').checked&&selection==='LIC-39527'&&ctrls.ffic.mode==='AUTO')S.V4Int=clamp(S.selectedOut-20.8-.085*(S.v4SP-S.v4flow),-150,150);
+S.mv533+=((fault==='valve533'?20.8:S.cmd533)-S.mv533)*dt/1.4;
+S.v4flow+=(clamp(273.5*S.mv533/20.8,0,650)-S.v4flow)*dt/1.6;
+S.cond=clamp(S.cond+dt*.013*(getInput('condIn')-S.v4flow),0,100);
+// Métrica didática em unidades normalizadas por tolerâncias especificadas (não é medição do SDCD).
+const err=1.7*Math.abs(S.level-ctrls.lic.sp)+10*Math.abs(S.flash-picSP)+18*Math.abs(S.top-ctrls.pica.sp)+.9*Math.abs(S.cond-ctrls.lic27.sp)+.009*Math.abs(S.flow-S.fICSP);
+S.stability=clamp(100-err,0,100);S.t+=dt;
+if(S.selected!==S.selectedPrev){log('FFY-533Y: autoridade transferida para '+S.selected+'.');S.selectedPrev=S.selected;}
+if(S.flare>3&&!S.flarePrev){log('Ação de controle PIC-39524B solicita a rota flare; intertravamento didático é módulo separado.');S.flarePrev=true;}
+if(S.flare<1&&S.flarePrev){log('Demanda de flare retornou abaixo de 1%.');S.flarePrev=false;}
+if(S.stability<45&&!S.gasWarnPrev){log('Desvio elevado no indicador didático: verificar modos, SP e saturação.');S.gasWarnPrev=true;}
+if(S.stability>84)S.gasWarnPrev=false;
 }
-function drawChart(id,fields,colors,dashfields){const canvas=$(id);if(!canvas)return;const rect=canvas.getBoundingClientRect(),w=Math.max(160,rect.width),h=165,dpr=Math.min(window.devicePixelRatio||1,2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}const c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);const left=36,right=w-10,top=10,bottom=h-22;c.strokeStyle='#e5edf3';c.lineWidth=1;c.font='10px Segoe UI, Arial';c.fillStyle='#90a2af';c.textAlign='right';for(let tick=0;tick<=100;tick+=25){let y=bottom-(tick/100)*(bottom-top);c.beginPath();c.moveTo(left,y);c.lineTo(right,y);c.stroke();c.fillText(String(tick),left-8,y+3);}const arr=history;if(arr.length<2)return;const xFrom=i=>left+(i/(Math.max(arr.length-1,1)))*(right-left),yFrom=v=>bottom-(clamp(v,0,100)/100)*(bottom-top);function line(field,color,dash=false){c.beginPath();c.lineWidth=dash?1.5:2.25;c.strokeStyle=color;c.setLineDash(dash?[6,4]:[]);arr.forEach((p,i)=>{const x=xFrom(i),y=yFrom(p[field]);if(i===0)c.moveTo(x,y);else c.lineTo(x,y);});c.stroke();c.setLineDash([]);}fields.forEach((field,i)=>line(field,colors[i]));dashfields.forEach((field,i)=>line(field,'#a0b3c2',true));c.textAlign='left';c.fillStyle='#7d93a3';c.fillText(`${fmt(arr[0].t,0)}s`,left,bottom+15);c.textAlign='right';c.fillText(`${fmt(arr.at(-1).t,0)}s`,right,bottom+15);}
-function drawCharts(){drawChart('chartLevels',['level','cond'],['#22a9a9','#e4a349'],['levelSP']);drawChart('chartPress',['flash','top'],['#548ee0','#e4a349'],['flashSP','topSP']);drawChart('chartFlows',['flow','v4flow'],['#23ac95','#9774cc'],['flowSP','v4SP']);}
-// Histórico precisa incluir o SP do LIC-518, que é explicitamente 48%.
-const originalCollect=collectHistory;collectHistory=function(){originalCollect();history[history.length-1].levelSP=48;};
+function collectHistory(){history.push({t:S.t,level:S.level,levelSP:ctrls.lic.sp,cond:S.cond,condSP:ctrls.lic27.sp,flash:S.flash,flashSP:ctrls.pic.effectiveSP,top:S.top,topSP:ctrls.pica.sp,flow:S.flow,flowSP:ctrls.fic.effectiveSP,v4flow:S.v4flow,v4SP:S.v4SP,dea11:S.q3911,dea11SP:ctrls.dea11.sp,dea12:S.q3912,dea12SP:ctrls.dea12.sp});if(history.length>300)history.shift();}
+function render(){setT('simClock','t = '+fmt(S.t)+' s');
+setT('kLevel',fmt(S.level)+'%');setT('kFlash',fmt(S.flash,2)+' kgf/cm²');setT('kFeed',fmt(S.flow,1)+' m³/d');setT('kCond',fmt(S.cond)+'%');setT('kTop',fmt(S.top,2)+' kgf/cm²');
+setBar('barLevel',S.level);setBar('barFlash',S.flash/5*100);setBar('barFeed',S.flow/4000*100);setBar('barCond',S.cond);setBar('barTop',S.top/2*100);
+setT('feedSPK','SP efetivo = '+fmt(S.fICSP,1)+' m³/d');
+setT('outFeedSP',fmt(S.fICSP,1)+' m³/d');setT('outValve534',fmt(S.mv534)+'%');setT('outFlashSP',fmt(S.flashSP,2)+' kgf/cm²');setT('outValveIn',fmt(S.valveIn)+'%');setT('outValveOut',fmt(S.valveB)+' / '+fmt(S.valveC)+'%');setT('outDR',fmt(S.dr,2)+'%');setT('outV4SP',fmt(S.v4SP,1)+' / '+fmt(S.v4flow,1)+' t/d');setT('outSelected',S.selected);setT('outValve533',fmt(S.mv533)+'%');setT('outURE',fmt(S.ure)+'%');setT('outFlare',fmt(S.flare)+'%');
+setT('outZicDeadband',Math.abs(S.mv534-ctrls.zic.sp)<=3?'DENTRO ±3%':'FORA ±3%');setT('outDEA11',fmt(S.q3911,1)+' / '+fmt(ctrls.dea11.sp,1)+' m³/d');setT('outDEA12',fmt(S.q3912,1)+' / '+fmt(ctrls.dea12.sp,1)+' m³/d');
+const stability=S.stability>85?'ESTÁVEL':S.stability>59?'EM ACOMODAÇÃO':'DESVIO ELEVADO';setT('kStability',stability);$('kStability').style.color=S.stability>85?'#0d8e70':S.stability>59?'#b68324':'#c95c51';setT('stabilityText',S.stability>85?'Variáveis próximas às referências':S.stability>59?'Controladores corrigindo perturbação':'Rever capacidade, limites e falhas');$('healthline').firstElementChild.style.width=fmt(S.stability,0)+'%';
+setT('svgLevel',fmt(S.level)+'%');setT('svgFlashP',fmt(S.flash,2));setT('svgZic',fmt(S.flashSP,2));setT('svgFeed',fmt(S.flow,0));setT('svgTop',fmt(S.top,2));setT('svgV4',fmt(S.v4flow,1));setT('svgCond',fmt(S.cond)+'%');const levelFill=$('towerFill'),h=clamp(S.level/100*160,3,160);levelFill.setAttribute('y',String(471-h));levelFill.setAttribute('height',String(h));
+const bars={'valve-534':S.mv534,'valve-533':S.mv533,'valve-518a':S.valveIn,'valve-518b':S.valveB+S.valveC,'valve-524a':S.ure,'valve-524b':S.flare};for(let id in bars){const el=$(id),value=bars[id];if(el){el.setAttribute('width',String(Math.max(1,value*.30)));el.style.fill=value>75?'#e6a044':value<5?'#92aaba':'#27bfa5';}}
+for(const d of controllerDefs){const c=ctrls[d.id],pv={lic:S.level,fic:S.flowPV,zic:S.mv534,pic:S.flash,ffic:S.v4flow,lic27:S.cond,pica:S.top,picb:S.top,dea11:S.q3911,dea12:S.q3912}[d.id];setT('pv-'+d.id,numFmt(pv,d.unit)+' '+d.unit);setT('mv-'+d.id,numFmt(outputFor(d.id),d.mvUnit)+' '+d.mvUnit);if(c.mode==='CAS'){$('sp-'+d.id).value=c.effectiveSP.toFixed(d.unit==='kgf/cm²'?2:1);} }
+}
+function drawChart(id,series,lo,hi){const canvas=$(id);if(!canvas)return;const r=canvas.getBoundingClientRect(),w=Math.max(170,r.width),h=165,dpr=Math.min(window.devicePixelRatio||1,2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);const left=49,right=w-10,top=10,bottom=h-22;ctx.font='10px Segoe UI,Arial';ctx.strokeStyle='#e4ebf0';ctx.fillStyle='#889eac';ctx.textAlign='right';for(let i=0;i<=4;i++){const val=lo+(hi-lo)*i/4,y=bottom-(bottom-top)*i/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillText(hi<=6?fmt(val,1):fmt(val,0),left-5,y+3);}if(history.length<2)return;const xx=i=>left+i/(history.length-1)*(right-left), yy=v=>bottom-clamp((v-lo)/(hi-lo),0,1)*(bottom-top);for(const se of series){ctx.strokeStyle=se.color;ctx.lineWidth=se.sp?1.35:2.1;ctx.setLineDash(se.sp?[4,3]:[]);ctx.beginPath();history.forEach((row,i)=>{const x=xx(i),y=yy(row[se.key]);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();}ctx.setLineDash([]);ctx.fillStyle='#8798a5';ctx.textAlign='left';ctx.fillText(fmt(history[0].t,0)+' s',left,bottom+15);ctx.textAlign='right';ctx.fillText(fmt(history.at(-1).t,0)+' s',right,bottom+15);}
+function drawCharts(){drawChart('chartLevels',[{key:'level',color:'#22a9a9'},{key:'cond',color:'#e4a349'},{key:'levelSP',color:'#9eafb9',sp:true},{key:'condSP',color:'#d2b38b',sp:true}],0,100);drawChart('chartPress',[{key:'flash',color:'#548ee0'},{key:'top',color:'#e4a349'},{key:'flashSP',color:'#a7c4df',sp:true},{key:'topSP',color:'#d4ba97',sp:true}],0,5);drawChart('chartFlows',[{key:'flow',color:'#23ac95'},{key:'flowSP',color:'#a8d9cb',sp:true},{key:'dea11',color:'#9774cc'},{key:'dea12',color:'#d0a04b'}],0,4500);drawChart('chartV4',[{key:'v4flow',color:'#9774cc'},{key:'v4SP',color:'#b4a8d7',sp:true}],0,500);}
 function frame(now){let realDelta=Math.min((now-lastFrame)/1000,.10);lastFrame=now;if(running){let budget=realDelta*speed;while(budget>0){const dt=Math.min(.10,budget);advance(dt);budget-=dt;}renderClock+=realDelta;chartClock+=realDelta;if(renderClock>.09){render();renderClock=0;}if(chartClock>.25){collectHistory();drawCharts();chartClock=0;}}requestAnimationFrame(frame);}
 function pause(force){running=typeof force==='boolean'?!force:!running;setT('playPauseBtn',running?'Ⅱ Pausar':'▶ Continuar');setT('runLabel',running?'Simulação em execução':'Simulação pausada');$('runDot').style.background=running?'#43d9b0':'#e3a546';$('plantSvg').classList.toggle('paused',!running);}
-$('playPauseBtn').onclick=()=>pause();$('stepBtn').onclick=()=>{if(running)pause(true);for(let i=0;i<10;i++)advance(.1);collectHistory();render();drawCharts();};$('resetBtn').onclick=()=>{reset();drawCharts();};$('speedSel').onchange=e=>{speed=Number(e.target.value);toast(`Velocidade de simulação: ${speed}×`);};$('clearTrendBtn').onclick=()=>{history=[];collectHistory();drawCharts();log('Histórico de tendências reiniciado.');};$('clearLogBtn').onclick=()=>{ $('eventLog').innerHTML='';log('Diário de eventos limpo.');};$('faultSel').onchange=()=>log('Falha didática selecionada: '+$('faultSel').selectedOptions[0].textContent+'.');
-for(let id of ['ckCascade','ckZic','ckProtection','ckTracking'])$(id).onchange=()=>log(`${$(id).parentElement.textContent.trim()}: ${$(id).checked?'habilitado':'desabilitado'} em modo didático.`);
-const scenarios={demand:{name:'Aumento de consumo da E-3913',set:{demand:73},text:'A saída de líquido cresce; o nível LT-518 tende a cair. Observe SP FIC-534, abertura FV-534 e recuperação do nível.'},supply:{name:'Queda de ΔP disponível',set:{supply:25},text:'A vazão DEA rica cai inicialmente. O FIC-534 abre a FV-534 e o ZIC-502 pode elevar lentamente a referência do PIC-518.'},cond:{name:'Proteção de nível LT-527',set:{condIn:21},text:'O inventário do condensado começa a cair. Observe a troca de FFY-533Y para LIC-527 e a restrição na FV-533.'},gas:{name:'Geração elevada de gás',set:{gasGen:91},text:'A pressão da E-3913 tende a subir. Observe a PV-524A abrir e a possível participação da rota didática ao flare.'},failure:{name:'FV-534 travada',set:{demand:72},fault:'valve534',text:'A necessidade de alimentação aumenta, mas a FV-534 permanece travada. Compare comando FIC-534, vazão real e nível da torre.'},flare:{name:'Restrição de recebimento URE',set:{gasGen:78},fault:'ure',text:'Limitação ilustrativa da capacidade da URE. Investigue pressão PT-524, comando PV-524A e demanda pela rota flare.'}};
-qsa('[data-scenario]').forEach(b=>b.onclick=()=>{const sc=scenarios[b.dataset.scenario];reset();for(const [k,v]of Object.entries(sc.set)){$('in-'+k).value=v;updateInputLabel(k);}if(sc.fault)$('faultSel').value=sc.fault;$('scenarioExplain').textContent=`${sc.name}: ${sc.text}`;log('Cenário iniciado: '+sc.name);if(!running)pause(false);toast(sc.name);});
+$('playPauseBtn').onclick=()=>pause();$('stepBtn').onclick=()=>{if(running)pause(true);for(let i=0;i<10;i++)advance(.1);collectHistory();render();drawCharts();};$('resetBtn').onclick=()=>{reset();drawCharts();};$('speedSel').onchange=e=>{speed=Number(e.target.value);toast('Velocidade de simulação: '+speed+'×');};$('clearTrendBtn').onclick=()=>{history=[];collectHistory();drawCharts();log('Tendências reiniciadas.');};$('clearLogBtn').onclick=()=>{$('eventLog').innerHTML='';log('Diário limpo.');};$('faultSel').onchange=()=>log('Falha didática selecionada: '+$('faultSel').selectedOptions[0].textContent+'.');
+for(const id of ['ckZic','ckProtection','ckTracking'])$(id).onchange=()=>log($(id).parentElement.textContent.trim()+': '+($(id).checked?'habilitado':'desabilitado')+'.');
+const scenarios={demand:{name:'Aumento de retirada da E-3913',set:{demand:3100},text:'Demanda/retirada de DEA aumenta em m³/d; acompanhe LIC-39518 e FIC-39534.'},supply:{name:'Redução de capacidade hidráulica',set:{supply:65},text:'O fator hidráulico de FV-534 diminui, provocando maior esforço do FIC-39534 e ação do ZIC-39502 (DB ±3%).'},cond:{name:'Nível F-3933 / proteção',set:{condIn:210},text:'O inventário associado ao LIC-39527 tende a cair. Acompanhe o seletor FFY-533Y.'},gas:{name:'Maior geração de gás ácido',set:{gasGen:146},text:'O PIC-39524A corrige a pressão pela rota URE; PIC-39524B só entra conforme sua faixa.'},failure:{name:'FV-534 com falha de posição',set:{demand:3200},fault:'valve534',text:'Compare SP de vazão, MV comandada e PV real.'},flare:{name:'Restrição de URE',set:{gasGen:150},fault:'ure',text:'Observe pressão E-3913 e demanda de saída para flare.'},dea11:{name:'Maior consumo de DEA — E-3911',controllers:{dea11:1750},text:'Altere o SP da FFIC-39522 e observe a PV, a retirada da E-3913 e as respostas da cascata.'},dea12:{name:'Maior consumo de DEA — E-3912',controllers:{dea12:1650},text:'Altere o SP da FFIC-39521 (valor de partida didático) e acompanhe a interação simulada com a regeneração.'},both:{name:'Consumo conjunto E-3911 + E-3912',controllers:{dea11:1750,dea12:1650},text:'Duas malhas absorvedoras elevam os consumos; comparar SP, PV e saída das FFICs e nível da E-3913.'}};
+qsa('[data-scenario]').forEach(b=>b.onclick=()=>{const sc=scenarios[b.dataset.scenario];reset();for(const [k,v]of Object.entries(sc.set||{})){$('in-'+k).value=v;updateInputLabel(k);}if(sc.controllers)for(const [k,v]of Object.entries(sc.controllers)){ctrls[k].mode='AUTO';ctrls[k].sp=v;$('mode-'+k).value='AUTO';$('sp-'+k).value=v;modeFields(k);}if(sc.fault)$('faultSel').value=sc.fault;$('scenarioExplain').textContent=sc.name+': '+sc.text;log('Cenário iniciado: '+sc.name);if(!running)pause(false);toast(sc.name);});
+makeModePanel();
 $('mathRV').oninput=$('mathRV1').oninput=()=>{const rv=Number($('mathRV').value),rv1=Number($('mathRV1').value),dr=13.3875*(rv+1.03)-26.217;setT('mathRVout',fmt(rv,2));setT('mathRV1out',fmt(rv1));setT('mathDRout',fmt(dr,2)+'%');setT('mathSPout',fmt(rv1*(1+dr/100),2));};$('mathRV').oninput();
 const questions=[
 {q:'O LT-518 indica queda de nível e o FIC-534 está em cascata. Qual alteração tende a ocorrer primeiro na referência de vazão?',a:['O LIC-518 aumenta o SP remoto do FIC-534.','O PIC-518 reduz a vazão da FV-534 diretamente.','O FFY-533Y aumenta a saída do LIC-527.','O PIC-524B libera a corrente de topo ao flare.'],correct:0,why:'O LIC-518 é o controlador mestre de nível e corrige o SP remoto do controlador secundário de vazão.'},

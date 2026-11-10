@@ -1,4 +1,4 @@
-# E-3913 / F-3931 — Controle Concept V1.1 + Intertravamento Gás Ácido
+# E-3913 / F-3931 — Controle Concept V1.2 + Intertravamento Gás Ácido
 
 One-page/PWA responsiva da U-39 para treinamento de operação e engenharia de controle.
 
@@ -57,3 +57,32 @@ Enviar `index.html`, `style.css`, `app.js`, `interlock.css`, `interlock.js`, `sw
 - `interlock.js`: simulador discreto do intertravamento, eventos, reset, gráficos, desafios
 - `assets/intertravamento-gas-acido-original.png`: referência do novo diagrama
 - Demais arquivos correspondem à Concept anterior preservada, exceto os ajustes de publicação/manifesto/cache.
+
+## Refinamento V1.2 — Solicitação operacional
+
+- PV/SP e unidades iniciais conforme as duas capturas fornecidas (ver tabela abaixo). As imagens são de um instante; não fixar como valores de projeto.
+- ZIC-39502: SP=72%, PV=71%, e banda morta de 3 pontos percentuais de posição na estratégia VPC (conforme solicitação).
+- FIC-39534 e PIC-39518: MAN / AUTO / CAS. Todos os demais controles de processo do laboratório: MAN / AUTO (restrição de treinamento solicitada).
+- Cada controlador: SP editável em AUTO; em CAS lê SP remoto (alterar no mestre); em MAN MV editável sem correção PI automática.
+- FFIC-39522 E-3911 e FFIC-39521 E-3912 com consumo de DEA independente; mudanças podem repercutir no inventário da E-3913 por balanço aproximado com atraso.
+- FFIC-39521 não possui PV/SP na captura: início em 1200/1200 m³/d é cenário DIDÁTICO editável, não número medido.
+- As conversões de sinais, dinâmica, ganhos e origens de vazão de retorno não foram validadas no SDCD; não utilizar a aplicação para manobras de planta.
+- Os antigos desenhos de referência preservados e seus SPs históricos (48%) não substituem a captura atual que mostra nível E-3913 em 69%.
+
+| Instrumento | PV da captura | SP da captura | Unidade exibida/utilizada |
+|---|---:|---:|---|
+| LIC-39518 | 69 | 69 | % |
+| FIC-39534 | 2648,9 | 2658,7 | m³/d |
+| ZIC-39502 | 71 | 72 | % |
+| PIC-39518 | 3,06 | 3,00 | kgf/cm² ("Kg" na tela) |
+| FFIC-39533 | 273,5 | 279,6 | t/d |
+| LIC-39527 | 82 | 75 | % |
+| PIC-39524A | 0,60 | 0,60 | kgf/cm² ("Kg" na tela) |
+| PIC-39524B | 0,60 | 0,70 | kgf/cm² ("Kg" na tela) |
+| FFIC-39522 | 1297 | 1300 | m³/d |
+| FFIC-39521 | — | — | m³/d; exemplos 1200/1200 didáticos |
+
+Observação: a faixa de deadband 3% do ZIC **não** deve ser confundida com o DB=3 do circuito de pressão PIC-524A/B presente no desenho original; são funções distintas.
+
+- Atualizados os valores de partida do módulo de intertravamento didático a partir das capturas: LI-514 F-3931=77%; PT-518=3,06; pressão E-3913=0,60; nível F-3932=30%. As condições de disparo permanecem conforme diagrama original.
+- Implementação do ZIC trata 3 pontos percentuais de diferença entre PV e SP de cada lado (|erro| > 3%); confirmar no SDCD se a definição de banda morta usa semilargura ou largura total.
