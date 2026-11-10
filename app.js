@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id),qsa=sel=>[...document.querySelectorAll(sel)],clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),fmt=(n,d=1)=>Number(n).toFixed(d).replace('.',','),rand=items=>[...items].sort(()=>Math.random()-.5);
 const explanations={
 'LIC-518':['LIC-39518 — Controle de nível','LT-518 transmite a PV de nível da E-3913. Na captura atual LIC-39518 apresenta SP = 69% (diagrama didático anterior: 48%) e ajusta o SP remoto do FIC-534. Nível baixo → aumento esperado da referência de vazão; nível alto → redução. A capacidade de recuperação depende da retirada de líquido e da autoridade da FV-534.'],
-'FIC-534':['FIC-534 — Malha interna da cascata','O FIC-534 compara o SP enviado pelo LIC-518 com a vazão FT-534 e calcula a solicitação de FV-534. Corrige variações hidráulicas mais rapidamente do que a malha de nível. Se a FV saturar ou o FT falhar, a cascata pode perder efetividade.'],
+'FIC-534':['FIC-534 — Malha interna da cascata','O FIC-534 compara o SP enviado pelo LIC-518 com a vazão FT-534 e calcula a solicitação de FV-534. Na V1.3.2, alterações do SP de nível são filtradas antes de gerar a referência de vazão e a MV tem limite de velocidade em AUTO/CAS, evitando quedas abruptas. Quando o nível aproxima-se do novo SP e a retirada permanece igual, a vazão deve recuperar gradualmente o balanço de massa; essa recuperação é física e não deve ser eliminada. Parâmetros de dinâmica são didáticos.'],
 'FV-534':['FV-534 — Válvula de DEA rica','Elemento final da alimentação da E-3913. Para vazão líquida em regime admissível, Q é função de Cv(abertura) e da raiz de ΔP. Uma mesma abertura não garante mesma vazão sob diferentes pressões. ZIC-502 utiliza um sinal associado à posição de controle desta válvula.'],
 'ZIC-502':['ZIC-39502 — Controle de posição / VPC','Compara a abertura solicitada da FV-534 com o SP de posição (72% na captura). Em AUTO, desvio maior que 3 pontos percentuais faz sua MV (referência do PIC-39518) aumentar ou reduzir dentro da faixa didática 2,50–3,50 kgf/cm². Dentro de ±3%, congela a correção; em MAN ou desabilitado não corrige. Essa alteração da pressão afeta ΔP e a posição necessária da FV-534. Validar direção, velocidade e limites reais no Centum VP.'],
 'PIC-518':['PIC-39518 — Pressão e split-range F-3931','Distribuição conforme informação operacional: MV de 0 a 50% abre apenas a FV-518A (GAS IN). Curva linear da FV-518A: cada ponto percentual a menos na MV abre A em 2 pontos percentuais, logo 0→100%, 25→50%, 50→0%. MV de 50 a 75% abre progressivamente a FV-518B (4% de abertura por 1% de MV); MV de 75 a 100% mantém B=100% e abre FV-518C na mesma taxa. Pressão baixa pede MV menor (GAS IN) e pressão alta MV maior (GAS OUT). Confirmar curva real dos PY-518A/B no SDCD.'],
@@ -44,7 +44,7 @@ const controllerDefs=[
  {id:'dea12',tag:'FFIC-39521',label:'Consumo de DEA E-3912 · exemplo',unit:'m³/d',pv:1200,sp:1200,mv:40,min:0,max:3000,step:1,modes:['AUTO','MAN'],mvUnit:'%',mvMin:0,mvMax:100,assumed:true}
 ];
 const ctrls={};for(const def of controllerDefs){ctrls[def.id]={def,mode:['fic','pic','ffic'].includes(def.id)?'CAS':'AUTO',sp:def.sp,mv:def.mv,effectiveSP:def.sp};}
-const initial=()=>({t:0,level:69,cond:82,flash:3.06,top:.60,flow:2648.9,flowPV:2648.9,v4flow:273.5,q3911:1297,q3912:1200,returnDemand:2648.9,ftFrozenValue:2648.9,fICSP:2658.7,flashSP:3.00,v4SP:279.6,dr:0,rv:.93,rv1:279.6,prevFlow:2648.9,mv534:71,cmd534:71,mv533:20.8,cmd533:20.8,valveIn:0,valveB:12,valveC:0,ure:15,flare:0,flowControlOut:20.8,levelControlOut:23.5,selected:'FFIC-39533',selectedOut:20.8,LInt:0,FInt:0,FlashInt:0,ZTrim:0,TopInt:0,V4Int:0,CondInt:0,D11Int:0,D12Int:0,FlareInt:0,topDemand:15,flashDemand:53,zicStatus:'DENTRO ±3% · SEM AJUSTE',zicError:-1,splitStage:'FV-518B (GAS OUT)',stability:100,flarePrev:false,selectedPrev:'FFIC-39533',gasWarnPrev:false});
+const initial=()=>({t:0,level:69,cond:82,flash:3.06,top:.60,flow:2648.9,flowPV:2648.9,v4flow:273.5,q3911:1297,q3912:1200,returnDemand:2648.9,ftFrozenValue:2648.9,fICSP:2658.7,levelSPFiltered:69,ficRawMV:71,licRawSP:2658.7,flashSP:3.00,v4SP:279.6,dr:0,rv:.93,rv1:279.6,prevFlow:2648.9,mv534:71,cmd534:71,mv533:20.8,cmd533:20.8,valveIn:0,valveB:12,valveC:0,ure:15,flare:0,flowControlOut:20.8,levelControlOut:23.5,selected:'FFIC-39533',selectedOut:20.8,LInt:0,FInt:0,FlashInt:0,ZTrim:0,TopInt:0,V4Int:0,CondInt:0,D11Int:0,D12Int:0,FlareInt:0,topDemand:15,flashDemand:53,zicStatus:'DENTRO ±3% · SEM AJUSTE',zicError:-1,splitStage:'FV-518B (GAS OUT)',stability:100,flarePrev:false,selectedPrev:'FFIC-39533',gasWarnPrev:false});
 let S=initial(),running=true,speed=1,lastFrame=performance.now(),renderClock=0,chartClock=0,history=[];
 function log(msg,highlight=true){const el=$('eventLog'),p=document.createElement('div');p.className='log-line';const t=document.createElement('time');t.textContent=`${fmt(S.t,0)} s`;const sp=document.createElement('span');sp.textContent=msg;if(highlight)sp.style.fontWeight='750';p.append(t,sp);el.prepend(p);while(el.children.length>60)el.lastElementChild.remove();}
 function setT(id,value){const x=$(id);if(x)x.textContent=value;}
@@ -64,10 +64,26 @@ S.q3911+=(clamp(1297*out11/39.3,0,3100)-S.q3911)*dt/2.2;S.q3912+=(clamp(1200*out
 // Dinâmica didática do retorno: acréscimo de consumo altera a demanda da E-3913 com atraso; não é balanço de planta validado.
 const demandTarget=getInput('demand')+(S.q3911-1297)+(S.q3912-1200);S.returnDemand+=(clamp(demandTarget,800,4400)-S.returnDemand)*dt/6.0;
 // 2) Inventário E-3913 e cascata de FIC-39534; MAN e CAS efetivamente diferentes.
-const lic=ctrls.lic;S.fICSP=control('lic',S.level,dt,21,.09,2658.7,'LInt',1000,4300);
+const lic=ctrls.lic;
+// V1.3.2: ajuste de SP de nível sem degrau na saída mestre.
+// 8 s = constante didática de filtro de referência, não um parâmetro confirmado do SDCD.
+if(lic.mode==='AUTO')S.levelSPFiltered+=(lic.sp-S.levelSPFiltered)*Math.min(1,dt/8);
+else S.levelSPFiltered=lic.sp;
+S.licRawSP=control('lic',S.level,dt,21,.09,2658.7,'LInt',1000,4300,lic.mode==='AUTO'?S.levelSPFiltered:lic.sp);
+// Limita a variação do setpoint REMOTO transmitido ao FIC (12 m³/d/s didáticos).
+const licRate=12;
+S.fICSP=lic.mode==='MAN'?S.licRawSP:S.fICSP+clamp(S.licRawSP-S.fICSP,-licRate*dt,licRate*dt);
 const fic=ctrls.fic;const spFic=fic.mode==='CAS'?S.fICSP:fic.sp;S.flowPV=fault==='ft534'?S.ftFrozenValue:S.flow;
-S.cmd534=control('fic',S.flowPV,dt,.022,.018,71,'FInt',0,100,spFic);
-const desiredValve=fault==='valve534'?71:S.cmd534;S.mv534+=(desiredValve-S.mv534)*dt/1.3;
+S.ficRawMV=control('fic',S.flowPV,dt,.022,.018,71,'FInt',0,100,spFic);
+// Sinal FIC em CAS/AUTO acompanha por rampa: queda de abertura gradual sem degraus.
+// Em MAN, a MV manual segue o comando inserido pelo usuário (com inércia física da válvula).
+const mvRate=0.85; // pontos percentuais de MV por segundo simulado
+S.cmd534=fic.mode==='MAN'?S.ficRawMV:S.cmd534+clamp(S.ficRawMV-S.cmd534,-mvRate*dt,mvRate*dt);
+// External-reset/back-calculation simplificado, somente quando a taxa limita o controlador.
+if(fic.mode!=='MAN'&&Math.abs(S.ficRawMV-S.cmd534)>0.1){
+ S.FInt=clamp(S.cmd534-71-.022*(spFic-S.flowPV),-100,100);
+}
+const desiredValve=fault==='valve534'?71:S.cmd534;S.mv534+=(desiredValve-S.mv534)*Math.min(1,dt/1.7);
 const hd=clamp((getInput('supply')/100)*(S.flash/3.06),.15,2.4);
 S.flow+=(clamp(2648.9*(S.mv534/71)*Math.sqrt(hd),0,4800)-S.flow)*dt/1.65;
 S.level=clamp(S.level+dt*.002*(S.flow-S.returnDemand),0,100);

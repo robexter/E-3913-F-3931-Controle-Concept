@@ -1,9 +1,9 @@
 /*
- * E-3913 / F-3931 Controle Concept — correção V1.3.1
- * Garante atualização de app.js e estilos após publicação da V1.2.
+ * E-3913 / F-3931 Controle Concept — correção V1.3.2
+ * Atualiza app.js e estilos da V1.3.2, preservando consistência da PWA.
  * Mantém o uso offline dos últimos arquivos baixados.
  */
-const CACHE = 'e3913-f3931-concept-v1.3.1';
+const CACHE = 'e3913-f3931-concept-v1.3.2';
 const PREFIX = 'e3913-f3931-concept-';
 const ASSETS = [
   './', './index.html', './style.css', './app.js',

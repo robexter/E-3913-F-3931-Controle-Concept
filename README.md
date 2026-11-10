@@ -1,4 +1,4 @@
-# E-3913 / F-3931 — Controle Concept V1.2 + Intertravamento Gás Ácido
+# E-3913 / F-3931 — Controle Concept V1.3.2 + Intertravamento Gás Ácido
 
 One-page/PWA responsiva da U-39 para treinamento de operação e engenharia de controle.
 
@@ -48,7 +48,7 @@ Essas hipóteses devem ser confirmadas na configuração do SDCD Yokogawa Centum
 
 ## Publicação GitHub Pages
 
-Enviar `index.html`, `style.css`, `app.js`, `interlock.css`, `interlock.js`, `sw.js`, `manifest.webmanifest`, `assets/` e `icons/` para a **raiz** do repositório. Configurar Settings → Pages → Deploy from a branch → main / (root). Todos os caminhos são relativos. A instalação PWA depende de HTTPS e suporte do navegador. O cache foi versionado como `e3913-f3931-concept-v1.1.0`, para não reter automaticamente a V1.0.
+Enviar `index.html`, `style.css`, `app.js`, `interlock.css`, `interlock.js`, `sw.js`, `manifest.webmanifest`, `assets/` e `icons/` para a **raiz** do repositório. Configurar Settings → Pages → Deploy from a branch → main / (root). Todos os caminhos são relativos. A instalação PWA depende de HTTPS e suporte do navegador. O cache foi versionado como `e3913-f3931-concept-v1.3.1`, para não reter automaticamente a V1.0.
 
 ## Arquivos
 
@@ -62,7 +62,7 @@ Enviar `index.html`, `style.css`, `app.js`, `interlock.css`, `interlock.js`, `sw
 
 - PV/SP e unidades iniciais conforme as duas capturas fornecidas (ver tabela abaixo). As imagens são de um instante; não fixar como valores de projeto.
 - ZIC-39502: SP=72%, PV=71%, e banda morta de 3 pontos percentuais de posição na estratégia VPC (conforme solicitação).
-- FIC-39534 e PIC-39518: MAN / AUTO / CAS. Todos os demais controles de processo do laboratório: MAN / AUTO (restrição de treinamento solicitada).
+- FIC-39534, PIC-39518 e FFIC-39533: MAN / AUTO / CAS. Todos os demais controles de processo do laboratório: MAN / AUTO (restrição de treinamento solicitada).
 - Cada controlador: SP editável em AUTO; em CAS lê SP remoto (alterar no mestre); em MAN MV editável sem correção PI automática.
 - FFIC-39522 E-3911 e FFIC-39521 E-3912 com consumo de DEA independente; mudanças podem repercutir no inventário da E-3913 por balanço aproximado com atraso.
 - FFIC-39521 não possui PV/SP na captura: início em 1200/1200 m³/d é cenário DIDÁTICO editável, não número medido.
@@ -86,3 +86,51 @@ Observação: a faixa de deadband 3% do ZIC **não** deve ser confundida com o D
 
 - Atualizados os valores de partida do módulo de intertravamento didático a partir das capturas: LI-514 F-3931=77%; PT-518=3,06; pressão E-3913=0,60; nível F-3932=30%. As condições de disparo permanecem conforme diagrama original.
 - Implementação do ZIC trata 3 pontos percentuais de diferença entre PV e SP de cada lado (|erro| > 3%); confirmar no SDCD se a definição de banda morta usa semilargura ou largura total.
+
+
+## Refinamento V1.3 — ZIC, split-range e FFIC-39533
+
+- **ZIC-39502:** PV = MV comandada pelo FIC-39534, SP de posição editável (72% no print). Fora da banda morta de ±3 pontos percentuais, a referência de pressão do PIC-39518 é alterada continuamente para recuperar a margem de abertura, respeitando a faixa didática 2,50–3,50 kgf/cm². A interface informa claramente `CORRIGINDO`, `DENTRO DA DB`, `MAN`, `DESABILITADO`, `SP NO LIMITE` ou `PIC FORA DE CAS`. O valor real do ganho e a convenção da DB devem ser confirmados no SDCD.
+- **PIC-39518 em CAS/AUTO/MAN:** SP normal de referência 3,00 kgf/cm²; faixa de SP **didática** 2,50–3,50 kgf/cm² conforme variação média informada.
+- **Split-range corrigido conforme a última definição do operador (V1.3.1):** MV 0–50% corresponde só a GAS IN FV-518A, com abertura linear A = 100 − 2×MV; 0%=100% aberta, 25%=50%, 50%=0% (2 pontos de abertura por 1 ponto da MV). MV 50–75% abre FV-518B de 0 até 100%: B = 4×(MV − 50). MV 75–100% mantém B=100% e abre FV-518C de 0 até 100%: C = 4×(MV − 75). Em MV 50%, todas ficam sem comando de abertura. As curvas devem ser conferidas nos blocos PY-518A/B.
+- **Direção da ação PIC:** pressão abaixo do SP → MV reduzida → GAS IN → pressão sobe → maior ΔP na FV-534 → maior vazão para a mesma abertura; alta pressão → GAS OUT → menor ΔP → menor vazão. Malha de vazão e cascata podem contrapor as perturbações se houver capacidade. O modelo não está validado para cálculos operacionais.
+- **FFIC-39533 CAS:** SP remoto do bloco FY/FF ajustado pela vazão de alimentação/razão; AUTO utiliza SP local; MAN fixa MV. A MV concorre no seletor mínimo com LIC-39527. Se FFIC estiver abaixo da demanda de LIC, pode elevar a abertura da FV-533 ao aumentar sua MV; ao exceder LIC, este passa a dominar. O diagrama não permite equiparar diretamente V4 à vazão real de vapor de stripping.
+- **Diagnóstico visual:** estado da DB, MV do PIC-39518 e faixa ativa; MVs comparadas do seletor; curva de tendência separada da MV e aberturas FV-518A/B/C. Ícones de FV-518B e FV-518C separados no fluxograma didático.
+- **Testes locais:** foram executados casos MV=0/25/50/60/75/88/100%, ZIC fora da DB, controle FFIC em AUTO e CAS, gráfico em quatro larguras de tela e verificação de erros JavaScript. Os testes locais não representam homologação em planta.
+
+**Publicação:** substituir os arquivos completos preservando as pastas; `sw.js` atualizado para `e3913-f3931-concept-v1.3.1` com preferência por rede para arquivos HTML/JS/CSS. O app anteriormente publicado pode precisar de reabertura online para renovar o cache.
+
+### Verificação adicional de direção física no laboratório (V1.3)
+
+Em PIC-39518 MAN, a MV = 25% aciona GAS IN e eleva a pressão simulada; MV = 75% e 100% aciona GAS OUT e reduz a pressão simulada. Em paralelo, a cascata da FV-534 tenta compensar a perturbação de vazão. O modelo permite saturação de pressão fora da faixa operacional de SP para demonstrar perda de autoridade; **isso não é previsão de comportamento real, nem limite de segurança do equipamento**. Com ZIC fora da DB (por exemplo, MV FIC-39534 = 76% para SP ZIC = 72%), a pressão de referência deixa de ficar congelada e começa a subir. Quando PIC-39518 não está em CAS, a interface informa explicitamente que a correção remota não está sendo aplicada.
+
+## Ajuste pontual V1.3.1 — Correção FV-518A
+
+A V1.3 usava incorretamente 25% MV → 75% de FV-518A. A relação atualizada é linear e consistente com a regra confirmada: 1 p.p. a menos na MV do PIC-39518 corresponde a **2 p.p. adicionais de abertura da FV-518A**. Fórmulas completas: A = clamp(100 − 2×MV, 0, 100); B = clamp(4×(MV−50), 0, 100); C = clamp(4×(MV−75), 0, 100). As faixas B e C e o restante das malhas permanecem inalterados.
+
+| MV PIC-39518 | FV-518A | FV-518B | FV-518C |
+|---:|---:|---:|---:|
+| 0% | 100% | 0% | 0% |
+| 10% | 80% | 0% | 0% |
+| 25% | 50% | 0% | 0% |
+| 40% | 20% | 0% | 0% |
+| 50% | 0% | 0% | 0% |
+| 60% | 0% | 40% | 0% |
+| 75% | 0% | 100% | 0% |
+| 80% | 0% | 100% | 20% |
+| 90% | 0% | 100% | 60% |
+| 100% | 0% | 100% | 100% |
+
+
+## V1.3.2 — Refinamento da dinâmica LIC-39518 / FIC-39534
+
+- Correção do degrau excessivo causado pelo componente proporcional do LIC ao reduzir o SP de nível.
+- Filtro de SP do LIC (constante didática 8 s) para evitar aplicação abrupta da nova referência de nível.
+- Limite de variação da referência de vazão em cascata (12 m³/d por segundo simulado).
+- Limite da velocidade da MV comandada pelo FIC em AUTO/CAS (0,85 ponto percentual por segundo simulado).
+- Tracking externo simplificado no termo integral do FIC quando a taxa limita a MV, evitando acúmulo de integral.
+- O modo MAN do FIC mantém o controle de MV manual, sem imposição da nova rampa de comando automático.
+- A vazão pode retornar **gradualmente** ao valor necessário ao balanço de massa depois que o novo nível se estabiliza; isso é correto fisicamente quando a retirada permanece constante. O objetivo é eliminar o mergulho brusco/artificial, não impedir a correção posterior.
+- Valores de filtro/rampa são didáticos; não são dados de sintonia extraídos do SDCD.
+
+**Preservação de modo manual:** em MAN, a MV do LIC-39518 é aplicada sem o limitador automático da referência remota; em MAN do FIC-39534, a saída corresponde ao comando do usuário, mantendo apenas a resposta física suavizada da válvula.
