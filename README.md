@@ -1,4 +1,4 @@
-# E-3913 / F-3931 — Controle Concept V1.3.2 + Intertravamento Gás Ácido
+# E-3913 / F-3931 — Controle Concept V1.3.4 + Intertravamento Gás Ácido
 
 One-page/PWA responsiva da U-39 para treinamento de operação e engenharia de controle.
 
@@ -134,3 +134,49 @@ A V1.3 usava incorretamente 25% MV → 75% de FV-518A. A relação atualizada é
 - Valores de filtro/rampa são didáticos; não são dados de sintonia extraídos do SDCD.
 
 **Preservação de modo manual:** em MAN, a MV do LIC-39518 é aplicada sem o limitador automático da referência remota; em MAN do FIC-39534, a saída corresponde ao comando do usuário, mantendo apenas a resposta física suavizada da válvula.
+
+
+## V1.3.3 — Novo patamar de vazão após alteração do SP de nível
+
+**Solicitação operacional incorporada:** ao reduzir ou aumentar o SP do LIC-39518 em AUTO, a Concept oferece um modo de estudo em que a retirada da E-3913 acompanha a mudança de SP, para que o controle em cascata chegue a outro patamar sustentado de vazão, em vez de retornar à vazão inicial.
+
+### Distinção física obrigatória
+
+Em balanço estacionário de uma torre com inventário controlado, `dN/dt = Qentrada − Qretirada = 0`. Alterar **somente** o SP de nível não impõe outra vazão estacionária; após transição, a alimentação precisa voltar a igualar a retirada. A opção de novo regime **acrescenta uma alteração simultânea hipotética da demanda/retirada** e uma compensação antecipatória didática dessa mudança no controlador mestre (além da ação PI), que permite obter outro ponto de equilíbrio. Não representa função confirmada do SDCD.
+
+### Dois modos comparáveis
+
+- **Novo regime vinculado ao SP (ativado por padrão):** nova retirada-alvo = demanda de base + mudanças das absorvedoras + (SP nível − 69%) × ganho. O ganho demonstrativo começa em `40 m³/d por ponto percentual de SP` e é ajustável entre 10 e 80. A retirada e o SP de vazão caminham por rampas, e a MV responde gradualmente. Exemplo: `69% → 65%` implica variação suposta de `−160 m³/d` na retirada; a vazão de alimentação estabiliza em novo patamar equivalente.
+- **Nível isolado (desativar a caixa de seleção):** muda apenas o SP do LIC, sem mudar a retirada de E-3913. A vazão se desvia transitoriamente e, ao estabilizar o nível, retorna à vazão de balanço original. Esse modo representa a propriedade de conservação de massa sem alteração de carga.
+
+### Como testar
+
+1. Inicie o simulador no cenário normal e mantenha os modos `LIC-39518 AUTO` / `FIC-39534 CAS`.
+2. No painel **Simulação do novo patamar de vazão — E-3913**, mantenha ativada a caixa de vínculo entre SP e demanda.
+3. Altere o SP do LIC-39518, por exemplo, de 69% para 65%.
+4. Acompanhe na tendência de vazões a **PV do FIC-39534**, seu **SP remoto** e a **retirada simulada** (nova série). Verifique também a MV, a tendência de nível e o novo alvo.
+5. Para comparar, use o cenário **SP nível isolado**; ele prova por que sem alteração da retirada não há vazão estacionária diferente.
+
+### Verificação automatizada de regressão (motor didático)
+
+Testado localmente, em tempos simulados e com leitura do navegador:
+
+- `SP 69% → 65%` com novo regime: após 240 s, nível `65,0%`, vazão `2.491,9 m³/d`, retirada `2.491,9 m³/d` (valores de modelo; as pequenas diferenças no valor inicial resultam da acomodação antes do teste).
+- `SP 69% → 73%`: após 220 s, nível `73,2%`, vazão `2.811,3 m³/d`, retirada `2.811,9 m³/d`.
+- `SP 69% → 65%` com modo nível isolado: após 220 s, nível `64,9%`, vazão `2.652,1 m³/d`, retirada `2.651,9 m³/d`, demonstrando retorno ao balanço.
+- Interface sem erros de JavaScript nem transbordamento horizontal em 320, 390, 768 e 1440 px.
+
+**Limitações:** o ganho de acoplamento, a dinâmica de retirada, o feedforward adicional, as rampas e constantes de tempo são exclusivamente didáticos; não devem ser interpretados como parâmetros reais da E-3913. A malha original de controle, o ZIC, split-range, seletor mínimo, intertravamento e PWA continuam preservados.
+
+
+## V1.3.4 — MVs independentes FFIC-39533 / LIC-39527 e seleção de mínima
+
+- **Diagnóstico:** a V1.3.3 recalculava a integral `V4Int` de modo que a saída do FFIC-39533 acompanhasse numericamente a MV do LIC-39527 sempre que o LIC fosse escolhido pelo seletor. Isso podia mostrar duas MVs praticamente iguais e obscurecer a comparação.
+- **Correção:** a MV do FFIC e a MV do LIC são calculadas independentemente. `FFY-533Y` seleciona a menor e somente esse resultado governa a válvula FV-533.
+- **Anti-windup didático:** a opção ativada evita acumular erro integral positivo no FFIC quando o LIC limita a abertura. Não força igualdade entre as MVs. A integral negativa continua liberada para que o FFIC recupere autoridade quando sua demanda diminuir.
+- **Supervisório:** as duas MVs são exibidas separadamente, com a diferença percentual e o controlador selecionado.
+- **Nova tendência:** `chartSelector` apresenta MV FFIC, MV LIC, saída do seletor e abertura da FV-533 (todas em %).
+- **Distinção técnica:** é possível que em um SDCD com tracking/external-reset real as saídas se aproximem ou coincidam. A arquitetura do desenho não demonstra que esse comportamento deva ser permanente; validar a parametrização do SDCD antes de inferir problema na planta.
+- **Sem alterações** nas demais malhas, bandas mortas, split-range PIC-39518 ou intertravamento.
+
+**Teste recomendado:** cenário 03 — proteção LT-527; variar alimentação do inventário F-3933. Quando LIC vencer, observar MVs distintas e a menor comandando FV-533. Em AUTO/CAS, comparar pedidos de vazão e nível, com e sem a opção anti-windup.
