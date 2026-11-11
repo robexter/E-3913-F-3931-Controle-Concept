@@ -1,4 +1,4 @@
-# E-3913 / F-3931 — Controle Concept V1.3.4 + Intertravamento Gás Ácido
+# E-3913 / F-3931 — Controle Concept V1.3.7 + Intertravamento Gás Ácido
 
 One-page/PWA responsiva da U-39 para treinamento de operação e engenharia de controle.
 
@@ -48,7 +48,7 @@ Essas hipóteses devem ser confirmadas na configuração do SDCD Yokogawa Centum
 
 ## Publicação GitHub Pages
 
-Enviar `index.html`, `style.css`, `app.js`, `interlock.css`, `interlock.js`, `sw.js`, `manifest.webmanifest`, `assets/` e `icons/` para a **raiz** do repositório. Configurar Settings → Pages → Deploy from a branch → main / (root). Todos os caminhos são relativos. A instalação PWA depende de HTTPS e suporte do navegador. O cache foi versionado como `e3913-f3931-concept-v1.3.1`, para não reter automaticamente a V1.0.
+Enviar `index.html`, `style.css`, `app.js`, `interlock.css`, `interlock.js`, `sw.js`, `manifest.webmanifest`, `assets/` e `icons/` para a **raiz** do repositório. Configurar Settings → Pages → Deploy from a branch → main / (root). Todos os caminhos são relativos. A instalação PWA depende de HTTPS e suporte do navegador. O cache foi versionado como `e3913-f3931-concept-v1.3.7`, para não reter automaticamente a V1.0.
 
 ## Arquivos
 
@@ -98,7 +98,7 @@ Observação: a faixa de deadband 3% do ZIC **não** deve ser confundida com o D
 - **Diagnóstico visual:** estado da DB, MV do PIC-39518 e faixa ativa; MVs comparadas do seletor; curva de tendência separada da MV e aberturas FV-518A/B/C. Ícones de FV-518B e FV-518C separados no fluxograma didático.
 - **Testes locais:** foram executados casos MV=0/25/50/60/75/88/100%, ZIC fora da DB, controle FFIC em AUTO e CAS, gráfico em quatro larguras de tela e verificação de erros JavaScript. Os testes locais não representam homologação em planta.
 
-**Publicação:** substituir os arquivos completos preservando as pastas; `sw.js` atualizado para `e3913-f3931-concept-v1.3.1` com preferência por rede para arquivos HTML/JS/CSS. O app anteriormente publicado pode precisar de reabertura online para renovar o cache.
+**Publicação:** substituir os arquivos completos preservando as pastas; `sw.js` atualizado para `e3913-f3931-concept-v1.3.7` com preferência por rede para arquivos HTML/JS/CSS. O app anteriormente publicado pode precisar de reabertura online para renovar o cache.
 
 ### Verificação adicional de direção física no laboratório (V1.3)
 
@@ -169,7 +169,7 @@ Testado localmente, em tempos simulados e com leitura do navegador:
 **Limitações:** o ganho de acoplamento, a dinâmica de retirada, o feedforward adicional, as rampas e constantes de tempo são exclusivamente didáticos; não devem ser interpretados como parâmetros reais da E-3913. A malha original de controle, o ZIC, split-range, seletor mínimo, intertravamento e PWA continuam preservados.
 
 
-## V1.3.4 — MVs independentes FFIC-39533 / LIC-39527 e seleção de mínima
+## V1.3.6 — MVs independentes FFIC-39533 / LIC-39527 e seleção de mínima
 
 - **Diagnóstico:** a V1.3.3 recalculava a integral `V4Int` de modo que a saída do FFIC-39533 acompanhasse numericamente a MV do LIC-39527 sempre que o LIC fosse escolhido pelo seletor. Isso podia mostrar duas MVs praticamente iguais e obscurecer a comparação.
 - **Correção:** a MV do FFIC e a MV do LIC são calculadas independentemente. `FFY-533Y` seleciona a menor e somente esse resultado governa a válvula FV-533.
@@ -180,3 +180,31 @@ Testado localmente, em tempos simulados e com leitura do navegador:
 - **Sem alterações** nas demais malhas, bandas mortas, split-range PIC-39518 ou intertravamento.
 
 **Teste recomendado:** cenário 03 — proteção LT-527; variar alimentação do inventário F-3933. Quando LIC vencer, observar MVs distintas e a menor comandando FV-533. Em AUTO/CAS, comparar pedidos de vazão e nível, com e sem a opção anti-windup.
+
+
+## Correção V1.3.6 — pressão de topo E-3913
+
+- Corrigida a ação do PIC-39524A: pressão acima do SP gera MAIOR abertura da PV-39524A para URE (e o inverso quando abaixo).
+- SP inicial do PIC-39524A é 0,60 kgf/cm², conforme captura operativa.
+- PIC-39524B para flare inicia fechado e permanece fechado em operação normal com URE disponível.
+- Em AUTO, o comando para flare somente é liberado no modelo didático se a rota URE estiver sem autoridade (MAN, limitação simulada) e a pressão ultrapassar o SP demonstrativo de 0,70 kgf/cm² do PIC-39524B; valores de transição e permissivas exigem validação no SDCD.
+- Novo status da rota URE/flare no painel e dois gráficos: pressão do topo em escala própria e aberturas das válvulas.
+- A indicação de DB=3 do diagrama NÃO tem unidade validada. Nenhuma alteração no intertravamento de gás ácido nem em seus temporizadores.
+
+
+## Refinamento V1.3.6 — pressão de topo, URE e flare
+
+- PIC-39524A atua como controlador prioritário com SP inicial de **0,60 kgf/cm²** (conforme captura do usuário).
+- PIC-39524B inicia com SP de **0,70 kgf/cm²** conforme captura, editável no painel. Em AUTO, solicita abertura quando a pressão atinge esse SP **e** o caminho normal não consegue manter controle (saturação do PIC A, restrição na URE, fechamento físico indevido ou PIC A manual). O limite e as permissivas são simplificados para estudo; **a lógica SDCD não foi validada**.
+- Novo controle *excesso de vapor de stripper* (0–100%) produz uma temperatura simulada de 117 até 123°C, com referência usual 116–118°C e cenário de alta 122–123°C. A correlação entre temperatura e geração de gás é apenas didática.
+- Novos cenários 06A (excesso de vapor), 06B (fechamento indevido PV-39524A), além do cenário de restrição URE existente.
+- Tendências mostram PV e SP dos PICs 39524A/B, MV comandada e abertura efetiva da PV-39524A, abertura flare e temperatura da E-3913. O painel separa comando URE de abertura efetiva.
+- Ausência de comportamento de segurança validado: o modelo **não é instrumento de proteção, procedimento operacional ou autorização de desvio para flare**.
+
+
+## Refinamento V1.3.7 — novo patamar URE/flare e prioridade FFIC
+
+- **PIC-39524A/B:** balanço de gás agora usa vazão efetiva dependente da abertura e da raiz do diferencial de pressão. Para ilustrar a física, assume **0,30 kgf/cm² como contrapressão URE**, valor exclusivamente didático e não extraído de qualquer instrumento/captura. A pressão da E-3913 em outro SP implica capacidade hidráulica diferente para a mesma abertura; o PI deve estabilizar com nova MV. Com maior produção sustentável de gás, também muda a abertura; flare só deve abrir pela lógica secundária quando necessário, mantendo valor não nulo somente se a demanda não puder ser atendida pela URE. Flare segue sujeito ao intertravamento real separado.
+- **FFIC-39533 prioritário:** permanece controle preferencial no seletor de mínima enquanto o F-3933 estiver com inventário seguro. O LIC-39527 continua calculando uma MV PI bruta independente, mas o modelo acrescenta uma **margem de acompanhamento de 2,7 pontos percentuais** para que a saída efetiva do limitador permaneça maior que a MV do FFIC durante a operação normal. Essa margem começa a ser retirada com a queda abaixo de **55% do nível** e desaparece em **25%**, permitindo ao LIC restringir a FV-533. Os limiares e o acompanhamento são HIPÓTESES de treinamento, não dados de engenharia do SDCD. O seletor continua sendo mínimo.
+- Tendências e supervisório mostram retiradas equivalentes, MVs, PI bruto do LIC e limitação; cenários novos '04A SP URE', '04B FFIC prioridade' e '06C SP flare'.
+- As duas alterações NÃO equivalem a programação certificada de intertravamento, segurança de processo, determinação da capacidade de flare ou regras de operação em campo.
